@@ -189,25 +189,37 @@ function App() {
 
   const moveJobInSchedule = aUseCallback((schedule, job, crewId, dayIdx = 2) => {
     const next = {};
+    const occurrences = [];
     Object.entries(schedule || {}).forEach(([schedCrewId, days]) => {
       next[schedCrewId] = {};
       Object.entries(days || {}).forEach(([dayKey, items]) => {
-        const filtered = (items || []).filter(item => item.jobId !== job.id);
+        const filtered = [];
+        (items || []).forEach(item => {
+          if (item.jobId === job.id) {
+            occurrences.push({ dayKey, item });
+          } else {
+            filtered.push(item);
+          }
+        });
         if (filtered.length) next[schedCrewId][dayKey] = filtered;
       });
     });
     if (crewId) {
-      const dayKey = String(dayIdx);
       next[crewId] = next[crewId] || {};
-      const existing = next[crewId][dayKey] || [];
-      next[crewId][dayKey] = [
-        ...existing,
-        {
-          jobId: job.id,
-          hours: job.hours || 8,
-          night: !!job.note?.toLowerCase().includes("night"),
-        },
-      ];
+      const itemsToMove = occurrences.length
+        ? occurrences
+        : [{
+            dayKey: String(dayIdx),
+            item: {
+              jobId: job.id,
+              hours: job.hours || 8,
+              night: !!job.note?.toLowerCase().includes("night"),
+            },
+          }];
+      itemsToMove.forEach(({ dayKey, item }) => {
+        const existing = next[crewId][dayKey] || [];
+        next[crewId][dayKey] = [...existing, { ...item, jobId: job.id }];
+      });
     }
     return next;
   }, []);
