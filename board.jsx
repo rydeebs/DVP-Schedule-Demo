@@ -301,12 +301,6 @@ function CrewLane({
         </div>
       </header>
 
-      <div className="lane-roster">
-        {members.map(w => (
-          <WorkerChip key={w.id} worker={w} state="assigned" dense />
-        ))}
-      </div>
-
       <div className="lane-equip">
         {crew.truckIds.map(t => <EquipChip key={t} kind="truck">{t}</EquipChip>)}
         {crew.equipment.map(eq => <EquipChip key={eq} kind="equip">{eq}</EquipChip>)}
