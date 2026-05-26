@@ -25,6 +25,7 @@ function App() {
   // State
   const [crews, setCrews] = aUseState(D.INITIAL_CREWS);
   const [jobs, setJobs] = aUseState(D.ALL_JOBS);
+  const [bench, setBench] = aUseState(D.BENCH);
   const [date, setDate] = aUseState(new Date(2026, 4, 26)); // May 26 2026
   const [view, setView] = aUseState("BOARD");
   const [query, setQuery] = aUseState("");
@@ -35,6 +36,7 @@ function App() {
   const [toast, setToast] = aUseState(null);
   const [selectedJobId, setSelectedJobId] = aUseState(null);
   const [addJobCrewId, setAddJobCrewId] = aUseState(null);
+  const [addBenchOpen, setAddBenchOpen] = aUseState(false);
   const [commandOpen, setCommandOpen] = aUseState(false);
   const [commandQuery, setCommandQuery] = aUseState("");
   const toastTimerRef = aUseRef(null);
@@ -61,16 +63,16 @@ function App() {
     deltaSched: 12,
     workersOn: crews.reduce((a,c) => a + c.workerIds.length, 0),
     workersRoster: D.WEEK_STATS.workersTotal,
-    bench: D.BENCH.filter(b => b.state === "available" || b.state === "shop").length,
-    pto: D.BENCH.filter(b => b.state === "pto").length,
-    sick: D.BENCH.filter(b => b.state === "sick").length,
+    bench: bench.filter(b => b.state === "available" || b.state === "shop").length,
+    pto: bench.filter(b => b.state === "pto").length,
+    sick: bench.filter(b => b.state === "sick").length,
     trucks: crews.reduce((a,c) => a + c.truckIds.length, 0),
     fleet: D.WEEK_STATS.fleetTotal,
     gpsActive: crews.filter(c => c.gpsActive).length,
     formsOpen: D.WEEK_STATS.formsOpen,
     formsOverdue: 4,
     notifyCount: crews.filter(c => (jobsByCrew[c.id] || []).length > 0).length,
-  }), [jobs, crews, jobsByCrew, unassigned, D]);
+  }), [jobs, crews, jobsByCrew, unassigned, bench, D]);
 
   // Toast helpers
   const showToast = aUseCallback((msg, undoFn) => {
@@ -103,6 +105,7 @@ function App() {
         setCommandOpen(false);
         setSelectedJobId(null);
         setAddJobCrewId(null);
+        setAddBenchOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -218,6 +221,33 @@ function App() {
     });
   }, [crews, showToast]);
 
+  const addBenchWorker = aUseCallback((form) => {
+    const name = form.name.trim();
+    if (!name) return;
+    const id = `bench-${Date.now()}`;
+    const init = name
+      .replace(/[^A-Za-z\s-]/g, "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0])
+      .join("")
+      .toUpperCase();
+    const worker = {
+      workerId: id,
+      name,
+      role: form.role,
+      init,
+      state: form.state,
+      note: "Added from crew board",
+    };
+    setBench(prev => [worker, ...prev]);
+    setAddBenchOpen(false);
+    showToast(`<strong>${worker.name}</strong> added to bench`, () => {
+      setBench(prev => prev.filter(w => w.workerId !== id));
+    });
+  }, [showToast]);
+
   const onDateNudge = (dir) => {
     if (dir === 0) {
       setDate(new Date(2026, 4, 26));
@@ -292,7 +322,7 @@ function App() {
               ))}
               <AddCrewLane onAddCrew={addCrew} />
             </div>
-            {t.showBench && <BenchBar bench={D.BENCH} />}
+            {t.showBench && <BenchBar bench={bench} onAddBench={() => setAddBenchOpen(true)} />}
           </div>
         )}
 
@@ -358,6 +388,11 @@ function App() {
         initialCrewId={addJobCrewId || ""}
         onClose={() => setAddJobCrewId(null)}
         onSave={addJob}
+      />
+      <BenchWorkerDrawer
+        open={addBenchOpen}
+        onClose={() => setAddBenchOpen(false)}
+        onSave={addBenchWorker}
       />
       <BoardJobDrawer
         job={selectedJob}
@@ -426,6 +461,7 @@ function App() {
           onClick={() => {
             setJobs(D.ALL_JOBS);
             setCrews(D.INITIAL_CREWS);
+            setBench(D.BENCH);
           }}
         />
       </window.TweaksPanel>

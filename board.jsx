@@ -566,7 +566,7 @@ function BoardJobDrawer({ job, crews, onClose, onAssign }) {
 }
 
 /* ─────────────────────────── Bench bar ─────────────────────────── */
-function BenchBar({ bench }) {
+function BenchBar({ bench, onAddBench }) {
   const [query, setQuery] = bUseState("");
   const groups = {
     available: { lbl: "UNASSIGNED", state: "available", dashed: true },
@@ -621,9 +621,69 @@ function BenchBar({ bench }) {
         </React.Fragment>
       ))}
       <div style={{ flex: 1 }}></div>
-      <button className="btn btn-ghost" style={{ flexShrink: 0 }}>
+      <button className="btn btn-ghost" style={{ flexShrink: 0 }} onClick={onAddBench}>
         <Icons.Plus size={12} /> Add to bench
       </button>
+    </div>
+  );
+}
+
+function BenchWorkerDrawer({ open, onClose, onSave }) {
+  const [form, setForm] = bUseState({
+    name: "",
+    role: "laborer",
+    state: "available",
+  });
+
+  bUseEffect(() => {
+    if (open) setForm({ name: "", role: "laborer", state: "available" });
+  }, [open]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.name.trim();
+
+  return (
+    <div className="proj-drawer add-form" role="dialog" aria-label="Add bench worker">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">BENCH</span>
+          <h2 className="nm">Add worker to bench</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="add-form-section">
+          <div className="h">Worker information</div>
+          <FormField label="Worker name" required>
+            <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Full name" />
+          </FormField>
+          <div className="add-form-grid-2">
+            <FormField label="Role">
+              <select value={form.role} onChange={(e) => setField("role", e.target.value)}>
+                <option value="laborer">Laborer</option>
+                <option value="operator">Operator</option>
+                <option value="foreman">Foreman</option>
+                <option value="cdl driver">CDL Driver</option>
+                <option value="mason">Mason</option>
+              </select>
+            </FormField>
+            <FormField label="Status">
+              <select value={form.state} onChange={(e) => setField("state", e.target.value)}>
+                <option value="available">Available</option>
+                <option value="shop">Shop / yard</option>
+                <option value="training">Training</option>
+                <option value="pto">PTO</option>
+                <option value="sick">Called out</option>
+              </select>
+            </FormField>
+          </div>
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Add Worker</button>
+      </footer>
     </div>
   );
 }
@@ -650,5 +710,5 @@ function UndoToast({ toast, onUndo }) {
 Object.assign(window, {
   Header, Sidebar, Subheader, MetricsRail,
   UnassignedPool, CrewLane, AddCrewLane, BenchBar, UndoToast,
-  CommandPalette, JobFormDrawer, BoardJobDrawer,
+  CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer,
 });
