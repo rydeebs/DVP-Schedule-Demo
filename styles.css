@@ -4730,6 +4730,11 @@ body { overflow: hidden; }
   transition: background var(--d-fast);
   position: relative;
 }
+.cust-hero button.cell {
+  border: 0;
+  text-align: left;
+  font: inherit;
+}
 .cust-hero .cell:hover { background: var(--surface-1); }
 .cust-hero .cell.bold {
   background: var(--asphalt);
