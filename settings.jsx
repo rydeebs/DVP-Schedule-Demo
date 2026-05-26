@@ -558,7 +558,7 @@ function DataObjectsPanel({ subtab }) {
         <span className="num">{rows.length}</span>
         <span className="h">{subtab}</span>
         <span className="hint">Manage labels, active status, and default ordering.</span>
-        <div className="right"><button className="btn btn-secondary">Import CSV</button></div>
+        <div className="right"><button className="btn btn-secondary" onClick={() => window.DVPAction("Settings import CSV started")}>Import CSV</button></div>
       </div>
       <div className="set-object-table">
         <div className="set-object-head">
@@ -763,10 +763,10 @@ function SettingsApp() {
               <SetIcons.Hist size={16} />
             </button>
           </div>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("Config export queued")}>
             Export config
           </button>
-          <button className="btn btn-primary" style={{ height: 32 }}>
+          <button className="btn btn-primary" style={{ height: 32 }} onClick={() => window.DVPAction("Settings saved")}>
             Save all changes
           </button>
         </div>

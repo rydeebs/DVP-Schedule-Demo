@@ -322,8 +322,9 @@ function CertRow({ cert, selected, onToggle, head, compact, onAction }) {
 }
 
 /* ─────────────────────────── Certifications view ─────────────────────────── */
-function CertificationsView({ onRenew }) {
+function CertificationsView({ onRenew, certTypes }) {
   const D = window.SAFETY_DATA;
+  const TYPES = certTypes || D.CERT_TYPES;
   const [filter, setFilter] = sUseState("all"); // all | expired | urgent | upcoming | ok
   const [query, setQuery] = sUseState("");
   const [selected, setSelected] = sUseState({});
@@ -348,7 +349,7 @@ function CertificationsView({ onRenew }) {
       if (filter === "ok"       && c.daysLeft <= 90) return false;
       if (query) {
         const w = D.WORKERS.find(x => x.id === c.workerId);
-        const t = D.CERT_TYPES[c.typeId];
+        const t = TYPES[c.typeId];
         const hay = `${w?.name} ${w?.role} ${w?.crew} ${t?.name} ${t?.issuer}`.toLowerCase();
         if (!hay.includes(query.toLowerCase())) return false;
       }
@@ -456,8 +457,8 @@ function IncidentsView() {
         <span className="h">Incidents · last 90 days</span>
         <span className="hint">{D.INCIDENTS.filter(i => i.status === "investigating").length} open · {D.INCIDENTS.filter(i => i.recordable).length} recordable</span>
         <div className="right">
-          <button className="filter-chip"><Icons.Filter size={12} /> SEVERITY</button>
-          <button className="btn btn-primary" style={{ height: 28 }}>
+          <button className="filter-chip" onClick={() => window.DVPAction("Incident severity filter opened")}><Icons.Filter size={12} /> SEVERITY</button>
+          <button className="btn btn-primary" style={{ height: 28 }} onClick={() => window.DVPAction("Incident intake opened")}>
             <SafIcons.Plus size={12} /> File incident
           </button>
         </div>
@@ -540,10 +541,10 @@ function TrainingView() {
         <span className="h">Training compliance</span>
         <span className="hint">{D.TRAINING_COURSES.length} required courses · {D.WORKERS.length} workers</span>
         <div className="right">
-          <button className="btn btn-secondary" style={{ height: 28 }}>
+          <button className="btn btn-secondary" style={{ height: 28 }} onClick={() => window.DVPAction("Nudged non-compliant workers")}>
             <SafIcons.Send size={12} /> Nudge non-compliant
           </button>
-          <button className="btn btn-primary" style={{ height: 28 }}>
+          <button className="btn btn-primary" style={{ height: 28 }} onClick={() => window.DVPAction("Training scheduler opened")}>
             <SafIcons.Plus size={12} /> Schedule course
           </button>
         </div>
@@ -605,10 +606,10 @@ function PoliciesView() {
         <span className="h">Written safety programs</span>
         <span className="hint">Acknowledgment tracked per worker</span>
         <div className="right">
-          <button className="btn btn-secondary" style={{ height: 28 }}>
+          <button className="btn btn-secondary" style={{ height: 28 }} onClick={() => window.DVPAction("Policy export pack queued")}>
             <SafIcons.Doc size={12} /> Export pack (PDF)
           </button>
-          <button className="btn btn-primary" style={{ height: 28 }}>
+          <button className="btn btn-primary" style={{ height: 28 }} onClick={() => window.DVPAction("Policy editor opened")}>
             <SafIcons.Plus size={12} /> New policy
           </button>
         </div>
@@ -645,7 +646,7 @@ function PoliciesView() {
 }
 
 /* ─────────────────────────── Side rail ─────────────────────────── */
-function SafetySide() {
+function SafetySide({ onAddCertType }) {
   const D = window.SAFETY_DATA;
   return (
     <aside className="safety-side">
@@ -683,16 +684,16 @@ function SafetySide() {
         <div className="fmf-side-h">
           <span>Quick actions</span>
         </div>
-        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("Expired workers notification queued")}>
           <SafIcons.Send size={12} /> Notify expired workers
         </button>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("OSHA 300 export queued")}>
           <SafIcons.Doc size={12} /> Export OSHA 300 log
         </button>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("Toolbox talk scheduler opened")}>
           <SafIcons.Calendar size={12} /> Schedule toolbox talk
         </button>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }} onClick={onAddCertType}>
           <SafIcons.Plus size={12} /> Add certification type
         </button>
       </div>

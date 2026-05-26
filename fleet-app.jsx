@@ -88,11 +88,11 @@ function FleetApp() {
             </span>
           </div>
           <div style={{ flex: 1 }}></div>
-          <button className="filter-chip">
+          <button className="filter-chip" onClick={() => { setStatusFilter(null); window.DVPAction("Crew filter cleared"); }}>
             <span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL CREWS
           </button>
-          <button className="filter-chip"><Icons.Filter size={12} /> JOB · ANY</button>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          <button className="filter-chip" onClick={() => { setKindFilter("all"); window.DVPAction("Job kind filter cleared"); }}><Icons.Filter size={12} /> JOB · ANY</button>
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("Trip log export queued")}>
             <Icons.Doc size={12} /> Export trip log
           </button>
           <button className="btn btn-primary" style={{ height: 32 }}

@@ -21,7 +21,9 @@ function SafetyApp() {
   }, [t.dark, t.density, t.accent]);
 
   const [view, setView] = aSUseState("OVERVIEW");
-  const [renewedIds, setRenewedIds] = aSUseState({});
+const [renewedIds, setRenewedIds] = aSUseState({});
+  const [certTypes, setCertTypes] = aSUseState(D.CERT_TYPES);
+  const [certTypeOpen, setCertTypeOpen] = aSUseState(false);
   const [toast, setToast] = aSUseState(null);
   const toastTimerRef = aSUseRef(null);
 
@@ -65,6 +67,23 @@ function SafetyApp() {
     );
   }, [showToast]);
 
+  const addCertType = aSUseCallback((form) => {
+    const id = `custom_${String(Date.now()).slice(-8)}`;
+    setCertTypes(prev => ({
+      ...prev,
+      [id]: {
+        id,
+        name: form.name.trim(),
+        issuer: form.issuer.trim(),
+        validMonths: Number(form.validMonths) || 12,
+        required: form.required.split(",").map(s => s.trim()).filter(Boolean),
+        tone: form.tone,
+      },
+    }));
+    setCertTypeOpen(false);
+    showToast(`<strong>${form.name}</strong> added to certification types`);
+  }, [showToast]);
+
   return (
     <div className="app" data-collapsed={String(!!t.sidebarCollapsed)}>
       <SafetyHeader
@@ -99,13 +118,13 @@ function SafetyApp() {
             ))}
           </div>
           <div style={{ flex: 1 }}></div>
-          <button className="filter-chip">
+          <button className="filter-chip" onClick={() => window.DVPAction("Crew filter opened")}>
             <span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL CREWS
           </button>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("OSHA 300 export queued")}>
             <SafIcons.Doc size={12} /> Export OSHA 300
           </button>
-          <button className="btn btn-primary" style={{ height: 32 }}>
+          <button className="btn btn-primary" style={{ height: 32 }} onClick={() => setView("INCIDENTS")}>
             <SafIcons.Plus size={14} /> File incident
           </button>
         </div>
@@ -113,16 +132,19 @@ function SafetyApp() {
         <div className="safety" style={!t.showSidePanel ? { gridTemplateColumns: "1fr" } : null}>
           <div className="safety-main">
             {view === "OVERVIEW"       && <SafetyOverview onJumpCerts={() => setView("CERTIFICATIONS")} />}
-            {view === "CERTIFICATIONS" && <CertificationsView onRenew={renew} />}
+            {view === "CERTIFICATIONS" && <CertificationsView onRenew={renew} certTypes={certTypes} />}
             {view === "TRAINING"       && <TrainingView />}
             {view === "INCIDENTS"      && <IncidentsView />}
             {view === "POLICIES"       && <PoliciesView />}
           </div>
-          {t.showSidePanel && (view === "OVERVIEW" || view === "CERTIFICATIONS") && <SafetySide />}
+          {t.showSidePanel && (view === "OVERVIEW" || view === "CERTIFICATIONS") && (
+            <SafetySide onAddCertType={() => setCertTypeOpen(true)} />
+          )}
         </div>
       </main>
 
       <UndoToast toast={toast} onUndo={handleUndo} />
+      <SafetyCertTypeDrawer open={certTypeOpen} onClose={() => setCertTypeOpen(false)} onSave={addCertType} />
 
       <window.TweaksPanel title="Tweaks">
         <window.TweakSection label="Appearance" />
@@ -143,6 +165,86 @@ function SafetyApp() {
         <window.TweakButton label="Jump to Certifications" onClick={() => setView("CERTIFICATIONS")} />
         <window.TweakButton label="Reset renewals" secondary onClick={() => setRenewedIds({})} />
       </window.TweaksPanel>
+    </div>
+  );
+}
+
+function SafetyCertTypeDrawer({ open, onClose, onSave }) {
+  const [form, setForm] = aSUseState({
+    name: "",
+    issuer: "DVP Internal",
+    validMonths: 12,
+    required: "foreman,operator",
+    tone: "info",
+  });
+
+  aSUseEffect(() => {
+    if (open) {
+      setForm({
+        name: "",
+        issuer: "DVP Internal",
+        validMonths: 12,
+        required: "foreman,operator",
+        tone: "info",
+      });
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.name.trim();
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.22)",
+      zIndex: 40, display: "flex", justifyContent: "flex-end"
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <aside style={{
+        width: 380, maxWidth: "100%", height: "100%",
+        background: "var(--surface-1)", borderLeft: "1px solid var(--ink-border)",
+        padding: 16, display: "flex", flexDirection: "column", gap: 12
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="brand-mark" style={{ width: 34, height: 34 }}>+</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-2)" }}>NEW CERT TYPE</div>
+            <div style={{ fontSize: 16, color: "var(--ink-0)" }}>Add certification type</div>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><SafIcons.X size={14} /></button>
+        </div>
+        <label className="add-form-field">
+          <span className="lbl">Name</span>
+          <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Confined Space Entry" />
+        </label>
+        <label className="add-form-field">
+          <span className="lbl">Issuer</span>
+          <input value={form.issuer} onChange={(e) => setField("issuer", e.target.value)} placeholder="DVP Internal" />
+        </label>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Valid months</span>
+            <input type="number" value={form.validMonths} onChange={(e) => setField("validMonths", Number(e.target.value) || 12)} />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Tone</span>
+            <select value={form.tone} onChange={(e) => setField("tone", e.target.value)}>
+              <option value="info">Info</option>
+              <option value="warn">Warn</option>
+              <option value="stop">Stop</option>
+              <option value="ok">OK</option>
+            </select>
+          </label>
+        </div>
+        <label className="add-form-field">
+          <span className="lbl">Required roles</span>
+          <input value={form.required} onChange={(e) => setField("required", e.target.value)} placeholder="foreman,operator" />
+        </label>
+        <div style={{ flex: 1 }}></div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Add type</button>
+        </div>
+      </aside>
     </div>
   );
 }

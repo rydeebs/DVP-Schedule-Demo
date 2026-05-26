@@ -536,6 +536,105 @@ function EqDrawer({ eq, onClose, onAssign }) {
   );
 }
 
+function EqAddDrawer({ open, onClose, onSave }) {
+  const D = window.EQ_DATA;
+  const [form, setForm] = eUseState({
+    num: "",
+    make: "",
+    model: "",
+    type: "paver",
+    year: 2024,
+    ownership: "owned",
+    rate: 0,
+    purchase: 0,
+  });
+
+  eUseEffect(() => {
+    if (open) {
+      setForm({
+        num: "",
+        make: "",
+        model: "",
+        type: "paver",
+        year: 2024,
+        ownership: "owned",
+        rate: 0,
+        purchase: 0,
+      });
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.num.trim() && form.make.trim() && form.model.trim();
+
+  return (
+    <div className="eq-drawer" role="dialog" aria-label="Add equipment">
+      <header className="eq-drawer-hdr">
+        <div className="row1">
+          <div className="ki">{typeIcon(form.type, 22)}</div>
+          <div className="col">
+            <span className="id">NEW ASSET</span>
+            <div className="nm">Add equipment</div>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><EqIcons.X size={14} /></button>
+        </div>
+      </header>
+      <div className="eq-drawer-body">
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Asset #</span>
+            <input value={form.num} onChange={(e) => setField("num", e.target.value)} placeholder="204" />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Type</span>
+            <select value={form.type} onChange={(e) => setField("type", e.target.value)}>
+              {Object.entries(D.TYPES).map(([key, info]) => <option key={key} value={key}>{info.lbl}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Make</span>
+            <input value={form.make} onChange={(e) => setField("make", e.target.value)} placeholder="CAT" />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Model</span>
+            <input value={form.model} onChange={(e) => setField("model", e.target.value)} placeholder="Model" />
+          </label>
+        </div>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Year</span>
+            <input type="number" value={form.year} onChange={(e) => setField("year", Number(e.target.value) || 2024)} />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Ownership</span>
+            <select value={form.ownership} onChange={(e) => setField("ownership", e.target.value)}>
+              <option value="owned">Owned</option>
+              <option value="rented">Rented</option>
+            </select>
+          </label>
+        </div>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Hourly rate</span>
+            <input type="number" value={form.rate} onChange={(e) => setField("rate", Number(e.target.value) || 0)} />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Book value</span>
+            <input type="number" value={form.purchase} onChange={(e) => setField("purchase", Number(e.target.value) || 0)} />
+          </label>
+        </div>
+      </div>
+      <footer className="eq-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Add equipment</button>
+      </footer>
+    </div>
+  );
+}
+
 /* ───────────────────── App root ───────────────────── */
 function EquipmentApp() {
   const D = window.EQ_DATA;
@@ -557,11 +656,14 @@ function EquipmentApp() {
 
   const [view, setView] = eUseState(t.defaultView);
   const [statusFilter, setStatusFilter] = eUseState("all");
+  const [typeFilter, setTypeFilter] = eUseState("all");
+  const [typeMenuOpen, setTypeMenuOpen] = eUseState(false);
   const [query, setQuery] = eUseState("");
   const [selected, setSelected] = eUseState({});
   const [openId, setOpenId] = eUseState(null);
   const [equipment, setEquipment] = eUseState(D.EQUIPMENT);
   const [assignOpen, setAssignOpen] = eUseState(false);
+  const [addOpen, setAddOpen] = eUseState(false);
   const [toast, setToast] = eUseState(null);
   const toastTimerRef = eUseRef(null);
 
@@ -594,13 +696,14 @@ function EquipmentApp() {
   const filtered = eUseMemo(() => {
     return equipment.filter(e => {
       if (statusFilter !== "all" && e.status !== statusFilter) return false;
+      if (typeFilter !== "all" && e.type !== typeFilter) return false;
       if (query) {
         const hay = `${e.id} ${e.num} ${e.make} ${e.model} ${D.TYPES[e.type]?.lbl}`.toLowerCase();
         if (!hay.includes(query.toLowerCase())) return false;
       }
       return true;
     });
-  }, [equipment, statusFilter, query]);
+  }, [equipment, statusFilter, typeFilter, query]);
 
   const selectedIds = Object.keys(selected);
   const toggle = (id) => setSelected(s => {
@@ -610,6 +713,35 @@ function EquipmentApp() {
   });
   const selectAll = () => setSelected(Object.fromEntries(filtered.map(e => [e.id, true])));
   const clearAll = () => setSelected({});
+  const addEquipment = eUseCallback((form) => {
+    const id = `EQ-${Date.now().toString().slice(-3)}`;
+    const asset = {
+      id,
+      num: form.num.trim(),
+      type: form.type,
+      make: form.make.trim(),
+      model: form.model.trim(),
+      year: Number(form.year) || new Date().getFullYear(),
+      ownership: form.ownership,
+      purchase: Number(form.purchase) || 0,
+      rate: Number(form.rate) || 0,
+      hours: 0,
+      status: "yard",
+      jobId: "jY",
+      since: "2026-05-26",
+      lastSvc: null,
+      svcDue: null,
+      driverInit: null,
+      x: 60,
+      y: 50,
+      gps: false,
+      note: "Added from equipment registry",
+    };
+    setEquipment(prev => [asset, ...prev]);
+    setAddOpen(false);
+    setOpenId(id);
+    showToast(`<span class="num">${asset.id}</span> added to registry`, () => setEquipment(prev => prev.filter(e => e.id !== id)));
+  }, [showToast]);
 
   // Bulk assign to job (the demonstrated interaction)
   const assignToJob = eUseCallback((ids, jobId) => {
@@ -641,6 +773,10 @@ function EquipmentApp() {
     { key: "BY_TYPE",   lbl: "BY TYPE",   ico: EqIcons.Stack },
     { key: "MAP",       lbl: "MAP",       ico: EqIcons.Map   },
   ];
+  const typeOptions = eUseMemo(() => [
+    ["all", "ALL TYPES"],
+    ...Object.entries(D.TYPES).map(([key, info]) => [key, info.lbl]),
+  ], [D.TYPES]);
 
   return (
     <div className="app" data-collapsed={String(!!t.sidebarCollapsed)}>
@@ -658,13 +794,24 @@ function EquipmentApp() {
             </span>
           </div>
           <div style={{ flex: 1 }}></div>
-          <button className="filter-chip">
+          <button className="filter-chip" onClick={() => setTypeMenuOpen(v => !v)} style={{ position: "relative" }}>
             <EqIcons.Filter size={12} /> ALL TYPES
           </button>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          {typeMenuOpen && (
+            <div className="eq-assign-menu" style={{ right: 256, top: 44, minWidth: 220, zIndex: 30 }}>
+              <div className="h">FILTER BY TYPE</div>
+              {typeOptions.map(([key, label]) => (
+                <button key={key} onClick={() => { setTypeFilter(key); setTypeMenuOpen(false); }}>
+                  <span style={{ flex: 1 }}>{label}</span>
+                  {typeFilter === key && <EqIcons.Check size={12} />}
+                </button>
+              ))}
+            </div>
+          )}
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("Equipment export queued")}>
             <EqIcons.Download size={12} /> Export
           </button>
-          <button className="btn btn-primary" style={{ height: 32 }}>
+          <button className="btn btn-primary" style={{ height: 32 }} onClick={() => setAddOpen(true)}>
             <EqIcons.Plus size={14} /> Add equipment
           </button>
         </div>
@@ -723,8 +870,12 @@ function EquipmentApp() {
               })()}</span>
               <button className="bulk-btn" onClick={clearAll}><EqIcons.X size={11} /> Clear</button>
               <span className="spc"></span>
-              <button className="bulk-btn"><EqIcons.Wrench size={11} /> Schedule service</button>
-              <button className="bulk-btn"><EqIcons.Download size={11} /> Export</button>
+              <button className="bulk-btn" onClick={() => window.DVPAction(`${selectedIds.length} service tickets queued`)}>
+                <EqIcons.Wrench size={11} /> Schedule service
+              </button>
+              <button className="bulk-btn" onClick={() => window.DVPAction(`${selectedIds.length} asset export queued`)}>
+                <EqIcons.Download size={11} /> Export
+              </button>
               <button className="bulk-btn primary" onClick={() => setAssignOpen(true)} style={{ position: "relative" }}>
                 <EqIcons.Send size={11} /> Assign to job <EqIcons.ChevD size={11} />
               </button>
@@ -764,6 +915,7 @@ function EquipmentApp() {
       </main>
 
       {openEq && <EqDrawer eq={openEq} onClose={() => setOpenId(null)} onAssign={(ids) => { setSelected(Object.fromEntries(ids.map(id => [id, true]))); setOpenId(null); setAssignOpen(true); }} />}
+      <EqAddDrawer open={addOpen} onClose={() => setAddOpen(false)} onSave={addEquipment} />
 
       <UndoToast toast={toast} onUndo={handleUndo} />
 

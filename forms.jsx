@@ -181,10 +181,10 @@ function InboxRow({ inst, onOpen }) {
           </button>
         ) : isAppr ? (
           <>
-            <button className="btn btn-secondary" style={{ height: 28 }} onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-secondary" style={{ height: 28 }} onClick={(e) => { e.stopPropagation(); window.DVPAction("Form sent back for revision"); }}>
               <FormIcons.X size={12} /> Send back
             </button>
-            <button className="btn btn-primary" style={{ height: 28 }} onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-primary" style={{ height: 28 }} onClick={(e) => { e.stopPropagation(); window.DVPAction("Form approved"); }}>
               <FormIcons.Check size={12} /> Approve
             </button>
           </>
@@ -368,7 +368,7 @@ function FormsTemplates({ onStart }) {
               <span className="sep">·</span>
               <span>last {tc.lastUsed}</span>
               <span style={{ flex: 1 }}></span>
-              <button className="btn btn-primary" style={{ height: 26, fontSize: 11 }}>
+              <button className="btn btn-primary" style={{ height: 26, fontSize: 11 }} onClick={(e) => { e.stopPropagation(); onStart(tpl); }}>
                 <FormIcons.Send size={11} /> Start
               </button>
             </div>
@@ -466,13 +466,13 @@ function FormsSide() {
         <div className="fmf-side-h">
           <span>Quick actions</span>
         </div>
-        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("Overdue foremen nudged")}>
           <FormIcons.Send size={12} /> Nudge all overdue foremen
         </button>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("Compliance CSV export queued")}>
           <Icons.Doc size={12} /> Export compliance CSV
         </button>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }}>
+        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "flex-start" }} onClick={() => window.DVPAction("Form template builder opened")}>
           <Icons.Plus size={12} /> Create form template
         </button>
       </div>

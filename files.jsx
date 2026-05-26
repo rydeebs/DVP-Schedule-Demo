@@ -176,7 +176,7 @@ function FilesRail({ selectedJobId, onSelect, filter, onFilter }) {
             onSelect={() => onSelect(j.id)}
           />
         ))}
-        <button className="f-collapsed" onClick={() => alert("Would expand: 5,302 jobs with no files")}>
+        <button className="f-collapsed" onClick={() => window.DVPAction("Expanded no-files job list")}>
           + SHOW <span className="num">5,302</span> JOBS WITH NO FILES
         </button>
       </div>
@@ -277,7 +277,7 @@ function FilesHero({ onPickJob }) {
         <span className="h">Today's activity · Tue May 26</span>
         <span className="c">{D.TODAY_ACTIVITY.length} EVENTS</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn btn-ghost" style={{ fontSize: 12 }}>
+        <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => window.DVPAction("File type filter opened")}>
           <Icons.Filter size={12} /> Filter by type
         </button>
       </div>
@@ -411,10 +411,10 @@ function FilesJob({
             <FIcons.List size={12} />
           </button>
         </div>
-        <button className="btn btn-secondary" style={{ height: 28 }}>
+        <button className="btn btn-secondary" style={{ height: 28 }} onClick={() => window.DVPAction("Job file export queued")}>
           <FIcons.Download size={12} /> Export
         </button>
-        <button className="btn btn-primary" style={{ height: 28 }}>
+        <button className="btn btn-primary" style={{ height: 28 }} onClick={() => window.DVPAction("Upload picker opened")}>
           <FIcons.Upload size={12} /> Upload
         </button>
       </div>
@@ -429,8 +429,8 @@ function FilesJob({
               Files sync with NetSuite project records automatically.
             </div>
             <div className="row">
-              <button className="btn btn-secondary"><FIcons.Folder size={12} /> Pick from another job</button>
-              <button className="btn btn-primary"><FIcons.Upload size={12} /> Upload from this device</button>
+              <button className="btn btn-secondary" onClick={() => window.DVPAction("Pick-from-job chooser opened")}><FIcons.Folder size={12} /> Pick from another job</button>
+              <button className="btn btn-primary" onClick={() => window.DVPAction("Device upload chooser opened")}><FIcons.Upload size={12} /> Upload from this device</button>
             </div>
           </div>
         </div>
@@ -661,11 +661,11 @@ function FilesApp() {
             <span className="date-day">{D.FILE_STATS.totalActiveJobs} ACTIVE TODAY · {D.FILE_STATS.totalThisWeek} THIS WEEK · 220 ACTIVE JOBS</span>
           </div>
           <div style={{ flex: 1 }}></div>
-          <button className="filter-chip">
+          <button className="filter-chip" onClick={() => window.DVPAction("Division filter opened")}>
             <span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL DIVISIONS
           </button>
-          <button className="filter-chip"><Icons.Filter size={12} /> FILTERS</button>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          <button className="filter-chip" onClick={() => window.DVPAction("File filters opened")}><Icons.Filter size={12} /> FILTERS</button>
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("File export selection queued")}>
             <FIcons.Download size={12} /> Export selection
           </button>
           <button className="btn btn-primary" style={{ height: 32 }}

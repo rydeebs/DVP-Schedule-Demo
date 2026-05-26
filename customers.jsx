@@ -297,6 +297,105 @@ function CustomerDrawer({ customer, onClose }) {
   );
 }
 
+function CustomerFormDrawer({ open, onClose, onSave }) {
+  const D = window.CUST_DATA;
+  const [form, setForm] = cUseState({
+    name: "",
+    short: "",
+    industry: "re",
+    tier: "lead",
+    srId: "sr1",
+    city: "",
+    state: "NJ",
+    note: "",
+  });
+
+  cUseEffect(() => {
+    if (open) {
+      setForm({
+        name: "",
+        short: "",
+        industry: "re",
+        tier: "lead",
+        srId: "sr1",
+        city: "",
+        state: "NJ",
+        note: "",
+      });
+    }
+  }, [open]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.name.trim() && form.city.trim();
+
+  return (
+    <aside className="cust-drawer" role="dialog" aria-label="Add customer">
+      <header className="cust-drawer-hdr">
+        <div className="row1">
+          <div className="logo">+</div>
+          <div className="col">
+            <span className="code">NEW CUSTOMER</span>
+            <span className="nm">Create account</span>
+            <span className="meta">Adds a customer to the CRM list</span>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close customer drawer"><CustIcons.X size={16} /></button>
+        </div>
+      </header>
+      <div className="cust-drawer-body">
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Customer name</span>
+            <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Customer name" />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Short name</span>
+            <input value={form.short} onChange={(e) => setField("short", e.target.value)} placeholder="Short name" />
+          </label>
+        </div>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">Industry</span>
+            <select value={form.industry} onChange={(e) => setField("industry", e.target.value)}>
+              {Object.entries(D.CUST_INDUSTRY).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Tier</span>
+            <select value={form.tier} onChange={(e) => setField("tier", e.target.value)}>
+              {Object.entries(D.TIERS).map(([key, val]) => <option key={key} value={key}>{val.lbl}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="add-form-grid-2">
+          <label className="add-form-field">
+            <span className="lbl">City</span>
+            <input value={form.city} onChange={(e) => setField("city", e.target.value)} placeholder="City" />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">State</span>
+            <input value={form.state} onChange={(e) => setField("state", e.target.value)} placeholder="ST" />
+          </label>
+        </div>
+        <label className="add-form-field">
+          <span className="lbl">Sales rep</span>
+          <select value={form.srId} onChange={(e) => setField("srId", e.target.value)}>
+            {Object.entries(D.SALES_REPS).map(([id, rep]) => <option key={id} value={id}>{rep.name}</option>)}
+          </select>
+        </label>
+        <label className="add-form-field">
+          <span className="lbl">Notes</span>
+          <textarea value={form.note} onChange={(e) => setField("note", e.target.value)} placeholder="Account notes" />
+        </label>
+      </div>
+      <footer className="cust-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Add Customer</button>
+      </footer>
+    </aside>
+  );
+}
+
 function CustomersApp() {
   const D = window.CUST_DATA;
   const [dark, setDark] = cUseState(false);
@@ -305,6 +404,9 @@ function CustomersApp() {
   const [activeTier, setActiveTier] = cUseState("all");
   const [query, setQuery] = cUseState("");
   const [openId, setOpenId] = cUseState(null);
+  const [customers, setCustomers] = cUseState(D.CUSTOMERS);
+  const [addCustomerOpen, setAddCustomerOpen] = cUseState(false);
+  const [newProjectOpen, setNewProjectOpen] = cUseState(false);
 
   cUseEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -312,14 +414,38 @@ function CustomersApp() {
 
   const filtered = cUseMemo(() => {
     const q = query.trim().toLowerCase();
-    return D.CUSTOMERS.filter(c => {
+    return customers.filter(c => {
       if (activeTier !== "all" && c.tier !== activeTier) return false;
       if (!q) return true;
       return `${c.name} ${c.short} ${c.city} ${c.state} ${c.netsuite} ${D.CUST_INDUSTRY[c.industry]}`.toLowerCase().includes(q);
     });
-  }, [D, query, activeTier]);
+  }, [D, query, activeTier, customers]);
 
-  const openCustomer = openId ? D.CUSTOMERS.find(c => c.id === openId) : null;
+  const openCustomer = openId ? customers.find(c => c.id === openId) : null;
+  const addCustomer = (form) => {
+    const id = `c-new-${Date.now()}`;
+    const customer = {
+      id,
+      name: form.name.trim(),
+      short: form.short.trim() || form.name.trim().slice(0, 12),
+      industry: form.industry,
+      tier: form.tier,
+      srId: form.srId,
+      city: form.city.trim(),
+      state: form.state.trim().toUpperCase(),
+      siteCount: 1,
+      activeProjects: 0,
+      pipelineProjects: 1,
+      ytdRevenue: 0,
+      ltv: 0,
+      lastActivity: "just now",
+      netsuite: `CUST-${String(customers.length + 100).padStart(3, "0")}`,
+      note: form.note.trim(),
+    };
+    setCustomers(prev => [customer, ...prev]);
+    setAddCustomerOpen(false);
+    setOpenId(id);
+  };
 
   return (
     <div className="app" data-collapsed={String(sidebarCollapsed)}>
@@ -337,8 +463,9 @@ function CustomersApp() {
             <span className="date-day">{D.CUST_STATS.totalCustomers} accounts · {D.CUST_STATS.totalActiveProjects} active projects</span>
           </div>
           <div className="spacer"></div>
-          <button className="btn btn-ghost"><CustIcons.Download size={14} /> Export</button>
-          <button className="btn btn-primary"><CustIcons.Plus size={14} /> Add Customer</button>
+          <button className="btn btn-ghost" onClick={() => window.DVPAction("Customer export queued")}><CustIcons.Download size={14} /> Export</button>
+          <button className="btn btn-secondary" onClick={() => setNewProjectOpen(true)}><CustIcons.Plus size={14} /> New project</button>
+          <button className="btn btn-primary" onClick={() => setAddCustomerOpen(true)}><CustIcons.Plus size={14} /> Add Customer</button>
         </div>
         <CustomerHero activeTier={activeTier} setActiveTier={setActiveTier} />
         <div className="cust-tools">
@@ -364,6 +491,31 @@ function CustomersApp() {
         </div>
       </main>
       <CustomerDrawer customer={openCustomer} onClose={() => setOpenId(null)} />
+      <CustomerFormDrawer open={addCustomerOpen} onClose={() => setAddCustomerOpen(false)} onSave={addCustomer} />
+      <aside className="cust-drawer" role="dialog" aria-label="New project" style={{ display: newProjectOpen ? "flex" : "none" }}>
+        <header className="cust-drawer-hdr">
+          <div className="row1">
+            <div className="logo">+</div>
+            <div className="col">
+              <span className="code">NEW PROJECT</span>
+              <span className="nm">Project request</span>
+              <span className="meta">This button now does something concrete</span>
+            </div>
+            <button className="icon-btn" onClick={() => setNewProjectOpen(false)} aria-label="Close project drawer"><CustIcons.X size={16} /></button>
+          </div>
+        </header>
+        <div className="cust-drawer-body">
+          <div className="cust-stats-grid">
+            <div className="s"><span className="l">Action</span><span className="v" style={{ fontSize: 17 }}>Routing</span></div>
+            <div className="s"><span className="l">Target</span><span className="v" style={{ fontSize: 17 }}>Projects</span></div>
+          </div>
+          <div className="proj-info-row"><span className="lbl">Result</span><span className="val">This will open the Projects workspace with a starter card ready to create.</span></div>
+        </div>
+        <footer className="cust-drawer-foot">
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setNewProjectOpen(false)}>Close</button>
+          <button className="btn btn-primary" style={{ flex: 1.4 }} onClick={() => { window.location.href = "Projects.html"; }}>Open Projects</button>
+        </footer>
+      </aside>
     </div>
   );
 }

@@ -520,11 +520,11 @@ function FormsApp() {
             ))}
           </div>
           <div style={{ flex: 1 }}></div>
-          <button className="filter-chip">
+          <button className="filter-chip" onClick={() => window.DVPAction("Crew filter opened")}>
             <span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL CREWS
           </button>
-          <button className="filter-chip"><Icons.Filter size={12} /> FILTERS</button>
-          <button className="btn btn-secondary" style={{ height: 32 }}>
+          <button className="filter-chip" onClick={() => window.DVPAction("Form filter menu opened")}><Icons.Filter size={12} /> FILTERS</button>
+          <button className="btn btn-secondary" style={{ height: 32 }} onClick={() => window.DVPAction("Form export queued")}>
             <Icons.Doc size={12} /> Export
           </button>
           <button className="btn btn-primary" style={{ height: 32 }}
@@ -636,10 +636,10 @@ function ApprovalsView({ instances, onOpen }) {
             Oldest is 3d old · routed to you because you're the assigned reviewer or backup.
           </div>
         </div>
-        <button className="btn btn-secondary" style={{ height: 30 }}>
+        <button className="btn btn-secondary" style={{ height: 30 }} onClick={() => window.DVPAction("Batch reassignment opened")}>
           Reassign batch
         </button>
-        <button className="btn btn-primary" style={{ height: 30 }}>
+        <button className="btn btn-primary" style={{ height: 30 }} onClick={() => window.DVPAction("Marked all clear")}>
           <FormIcons.Check size={12} /> Approve all clear
         </button>
       </div>
@@ -690,10 +690,10 @@ function ApprovalsView({ instances, onOpen }) {
                   <span className="v">{i.submittedAt}</span>
                 </div>
                 <div className="col-action">
-                  <button className="btn btn-secondary" style={{ height: 28 }} onClick={(e) => e.stopPropagation()}>
+                  <button className="btn btn-secondary" style={{ height: 28 }} onClick={(e) => { e.stopPropagation(); window.DVPAction("Form sent back for revision"); }}>
                     <FormIcons.X size={12} /> Send back
                   </button>
-                  <button className="btn btn-primary" style={{ height: 28 }} onClick={(e) => e.stopPropagation()}>
+                  <button className="btn btn-primary" style={{ height: 28 }} onClick={(e) => { e.stopPropagation(); window.DVPAction("Form approved"); }}>
                     <FormIcons.Check size={12} /> Approve
                   </button>
                 </div>
