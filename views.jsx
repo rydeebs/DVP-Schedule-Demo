@@ -1,6 +1,6 @@
 // Crew (weekly grid) + Dispatch views. Continue the Industrial Utilitarian system.
 
-const { useState: vUseState, useMemo: vUseMemo, useRef: vUseRef } = React;
+const { useState: vUseState, useMemo: vUseMemo, useRef: vUseRef, useEffect: vUseEffect } = React;
 
 /* ──────────────────────────────────────────────────────────────────
    Weather glyph — tiny inline SVG, no emoji per design system §10
@@ -37,13 +37,38 @@ function WxGlyph({ kind = "sun", size = 12 }) {
    CrewView — Crew rows × 7 day columns weekly grid
    ────────────────────────────────────────────────────────────────── */
 function CrewView({
-  crews, jobs, scheduleByCrew, dropHandlers, dragHandlers,
+  crews, jobs, bench = window.DATA.BENCH, scheduleByCrew, dropHandlers, dragHandlers,
   isDropTarget, snapJobId,
   onOpenJob, onAddJob,
+  departmentView, onDepartmentViewChange,
 }) {
   const D = window.DATA;
   const WEEK = D.WEEK_DAYS;
   const TODAY_IDX = 2; // Tue May 26 2026
+  const [deptOpen, setDeptOpen] = vUseState(false);
+
+  const departmentOptions = [
+    { value: "regional", label: "DVP / Regional", match: () => true },
+    { value: "excavation", label: "DVP / Excavation", match: (c) => c.division.toLowerCase().includes("excav") },
+    { value: "paving", label: "DVP / Paving", match: (c) => c.division.toLowerCase().includes("paving") },
+    { value: "concrete", label: "DVP / Concrete", match: (c) => c.division.toLowerCase().includes("concrete") },
+    { value: "milling", label: "DVP / Milling", match: (c) => c.division.toLowerCase().includes("milling") },
+    { value: "field", label: "DVP / Field Ops", match: (c) => c.division.toLowerCase().includes("field ops") },
+    { value: "striping", label: "DVP / Striping", match: (c) => c.division.toLowerCase().includes("striping") },
+    { value: "subcontractor", label: "Subcontractor View", match: () => false },
+  ];
+  const selectedDept = departmentOptions.find((opt) => opt.value === departmentView) || departmentOptions[0];
+  const visibleCrews = selectedDept.value === "subcontractor"
+    ? []
+    : crews.filter((c) => selectedDept.match(c));
+
+  vUseEffect(() => {
+    const onDocClick = (e) => {
+      if (!e.target.closest?.(".wg-dept")) setDeptOpen(false);
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
 
   const allJobsById = vUseMemo(() => {
     const m = {};
@@ -56,9 +81,31 @@ function CrewView({
       <div className="weekgrid-scroll">
         <div className="weekgrid-table">
           <div className="wg-corner">
-            <span className="h">DVP / EXCAVATION</span>
+            <div className="wg-dept">
+              <button className="wg-dept-btn" onClick={() => setDeptOpen(v => !v)} aria-label="Choose department">
+                <span className="h">{selectedDept.label}</span>
+                <Icons.ChevD size={13} />
+              </button>
+              {deptOpen && (
+                <div className="wg-dept-menu" role="menu" aria-label="Department filters">
+                  {departmentOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={opt.value === selectedDept.value ? "active" : ""}
+                      onClick={() => {
+                        onDepartmentViewChange?.(opt.value);
+                        setDeptOpen(false);
+                      }}
+                    >
+                      <span>{opt.label}</span>
+                      {opt.value === selectedDept.value && <Icons.ChevR size={11} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <span className="sub">WK 22 · MAY 24 – 30, 2026</span>
-            <span className="sub" style={{ color: "var(--ink-2)" }}>{crews.length} CREWS · 7 DAYS</span>
+            <span className="sub" style={{ color: "var(--ink-2)" }}>{visibleCrews.length} CREWS · 7 DAYS</span>
           </div>
           {WEEK.map((d, i) => (
             <div key={d.key} className={`wg-head ${i === TODAY_IDX ? "today" : ""}`}>
@@ -76,8 +123,9 @@ function CrewView({
             </div>
           ))}
 
-          {crews.map((c) => {
+          {visibleCrews.map((c) => {
             const sched = scheduleByCrew[c.id] || {};
+            const crewWorkers = c.workerIds.map(D.lookup).filter(Boolean);
             const totalHrs = Object.values(sched).flat()
               .reduce((a, b) => a + (b.hours || 0), 0);
             return (
@@ -88,6 +136,11 @@ function CrewView({
                     <span className="nm">{c.name.replace(/^Crew \d+ — /, "")}</span>
                   </div>
                   <span className="sub2">{c.division.toUpperCase()} · {c.workerIds.length} CREW</span>
+                  <div className="wg-crew-workers">
+                    {crewWorkers.map((worker) => (
+                      <WorkerChip key={worker.id} worker={worker} state="assigned" dense />
+                    ))}
+                  </div>
                   <div className="stat-row">
                     <span>{totalHrs}H WK</span>
                     <span className="pip">·</span>
@@ -149,6 +202,26 @@ function CrewView({
               </React.Fragment>
             );
           })}
+          <div className="wg-bench-row">
+            <div className="wg-bench-left">
+              <div className="row1">
+                <span className="gps-dot off"></span>
+                <span className="nm">Unassigned</span>
+              </div>
+              <span className="sub2">AVAILABLE WORKERS · {bench.length}</span>
+              <div className="wg-bench-workers">
+                {bench.map((worker) => (
+                  <WorkerChip
+                    key={worker.workerId}
+                    worker={{ id: worker.workerId, name: worker.name, role: worker.role, init: worker.init, cert: [] }}
+                    state={worker.state === "available" || worker.state === "shop" ? "available" : "unavailable"}
+                    dashed={worker.state === "available" || worker.state === "shop"}
+                    dense
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

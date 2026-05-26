@@ -34,6 +34,7 @@ function App() {
   const [priorityFilter, setPriorityFilter] = aUseState("all");
   const [divisionFilter, setDivisionFilter] = aUseState("all");
   const [filtersOpen, setFiltersOpen] = aUseState(false);
+  const [crewDepartmentView, setCrewDepartmentView] = aUseState("regional");
   const [draggingId, setDraggingId] = aUseState(null);
   const [dropTargetId, setDropTargetId] = aUseState(null);
   const [assigningLaneId, setAssigningLaneId] = aUseState(null);
@@ -449,6 +450,7 @@ function App() {
           <window.CrewView
             crews={crews}
             jobs={jobs}
+            bench={bench}
             scheduleByCrew={weekSchedule}
             dragHandlers={dragHandlers}
             dropHandlers={{
@@ -471,6 +473,8 @@ function App() {
             snapJobId={snapJobId}
             onOpenJob={(job) => setSelectedJobId(job.id)}
             onAddJob={openAddJob}
+            departmentView={crewDepartmentView}
+            onDepartmentViewChange={setCrewDepartmentView}
           />
         )}
 

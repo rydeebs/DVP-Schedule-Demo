@@ -1326,6 +1326,66 @@ body { overflow: hidden; }
   border-right: 1px solid var(--ink-border);
   padding: var(--s3) var(--s4);
   display: flex; flex-direction: column; gap: 4px;
+  overflow: visible;
+}
+.wg-dept {
+  position: relative;
+  display: inline-flex;
+  align-self: flex-start;
+}
+.wg-dept-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.wg-dept-btn .h {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.wg-dept-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: var(--surface-0);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  z-index: 20;
+}
+.wg-dept-menu button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--ink-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.wg-dept-menu button:hover,
+.wg-dept-menu button.active {
+  background: var(--surface-2);
+  color: var(--ink-0);
 }
 .wg-corner .h {
   font-family: var(--font-mono);
@@ -1346,14 +1406,53 @@ body { overflow: hidden; }
   border-right: 1px solid var(--ink-border);
   border-bottom: 1px solid var(--ink-border);
   padding: var(--s3) var(--s4);
-  min-height: 104px;
+  min-height: 136px;
   display: flex; flex-direction: column; gap: 4px;
 }
 .wg-crew .row1 { display: flex; align-items: center; gap: var(--s2); }
 .wg-crew .row1 .nm { font-size: var(--text-sm); color: var(--ink-0); font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wg-crew .sub2 { font-family: var(--font-mono); font-size: 10px; color: var(--ink-2); letter-spacing: 0.04em; }
+.wg-crew-workers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.wg-crew-workers .wc { max-width: 100%; }
 .wg-crew .stat-row { display: flex; gap: var(--s2); font-family: var(--font-mono); font-size: 10px; color: var(--ink-1); letter-spacing: 0.04em; margin-top: auto; }
 .wg-crew .stat-row .pip { color: var(--ink-3); }
+
+.wg-bench-row {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--ink-border);
+  background: var(--surface-1);
+  padding: var(--s3) var(--s4);
+  display: flex;
+  gap: var(--s4);
+  align-items: flex-start;
+}
+.wg-bench-left {
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wg-bench-left .nm {
+  font-size: var(--text-sm);
+  color: var(--ink-0);
+  font-weight: 500;
+}
+.wg-bench-left .sub2 {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+.wg-bench-workers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 
 .wg-day {
   border-right: 1px solid var(--ink-border);
