@@ -311,6 +311,26 @@ body { overflow: hidden; }
   cursor: pointer;
 }
 
+.dvp-action-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 240;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 10px 12px;
+  border: 1px solid var(--ink-border);
+  border-left: 3px solid var(--signal);
+  border-radius: var(--r);
+  background: var(--surface-0);
+  color: var(--ink-0);
+  box-shadow: var(--shadow-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: toast-in var(--d-normal) var(--ease-out);
+}
+
 .icon-btn {
   width: 32px; height: 32px;
   display: grid; place-items: center;

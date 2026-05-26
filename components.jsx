@@ -43,6 +43,57 @@ const Icons = {
   Cmd:         (p) => <Ico {...p} d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6Z" />,
 };
 
+function dvpActionLabel(button) {
+  const text = (button.textContent || "").replace(/\s+/g, " ").trim();
+  const aria = button.getAttribute("aria-label") || button.getAttribute("title") || "";
+  return text || aria || "Action";
+}
+
+function dvpShowAction(label) {
+  const msg = `${label} action queued`;
+  const existing = document.querySelector(".dvp-action-toast");
+  if (existing) existing.remove();
+  const el = document.createElement("div");
+  el.className = "dvp-action-toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  window.setTimeout(() => el.remove(), 2200);
+}
+
+window.DVPAction = (label) => dvpShowAction(label);
+
+if (!window.__dvpButtonFallbackInstalled) {
+  window.__dvpButtonFallbackInstalled = true;
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest?.("button");
+    if (!button || button.disabled || button.closest(".twk-panel")) return;
+
+    const label = dvpActionLabel(button);
+    const actionable = [
+      "Notify", "Export", "Import", "Filter", "History", "Preview", "Email",
+      "Download", "Share", "Upload", "Pick", "Request", "Generate", "Print",
+      "Send", "Schedule", "Activity", "Open in", "New project", "Add Customer",
+      "Open command palette", "Notifications", "Rename", "Directions", "Work order",
+      "Sync", "Copy", "Map focus", "ALL DIVISIONS", "ALL CREWS", "SEVERITY",
+      "JOB · ANY", "FY 2026", "Crew menu",
+    ];
+    if (!actionable.some(token => label.toLowerCase().includes(token.toLowerCase()))) return;
+
+    window.setTimeout(() => {
+      if (!document.body.contains(button)) return;
+      if (button.classList.contains("cmdk")) {
+        const input = document.querySelector(".proj-search input, .file-search input, .fl-search input, .cust-search input, .set-search input, input[type='search'], input");
+        if (input) {
+          input.focus();
+          dvpShowAction("Search focused");
+          return;
+        }
+      }
+      dvpShowAction(label);
+    }, 0);
+  });
+}
+
 /* ───────────────────── Status pill ───────────────────── */
 function StatusPill({ variant = "info", children, signal }) {
   if (signal) return <span className="pill pill-signal">{children}</span>;
