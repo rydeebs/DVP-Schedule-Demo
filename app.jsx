@@ -410,6 +410,7 @@ function App() {
               crews={crews}
               isAssigning={assigningLaneId === "unassigned"}
               snapJobId={snapJobId}
+              onStatusFilter={setJobStatusFilter}
             />
             <div className="lanes">
               {crews.map(c => (

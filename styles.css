@@ -722,16 +722,22 @@ body { overflow: hidden; }
   padding: 0 var(--s4) var(--s3);
   flex-wrap: wrap;
 }
-.pool-tabs span {
+.pool-tabs button {
   border: 1px solid var(--ink-border);
   border-radius: var(--r-sm);
   padding: 3px 6px;
+  background: var(--surface-0);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.06em;
   color: var(--ink-3);
+  cursor: pointer;
 }
-.pool-tabs span.active {
+.pool-tabs button:hover {
+  border-color: var(--ink-3);
+  color: var(--ink-0);
+}
+.pool-tabs button.active {
   border-color: var(--signal-line);
   color: var(--signal-hover);
   background: var(--signal-soft);

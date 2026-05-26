@@ -270,6 +270,7 @@ function MetricsRail({ totals }) {
 function UnassignedPool({
   jobs, allCount, filters, crews, dragHandlers, dropHandlers,
   draggingId, query, setQuery, onOpenJob, isDropTarget, isAssigning, snapJobId,
+  onStatusFilter,
 }) {
   const filtered = jobs.filter(j =>
     !query ||
@@ -297,9 +298,9 @@ function UnassignedPool({
         <span className="c">{filtered.length} of {allCount}</span>
       </div>
       <div className="pool-tabs">
-        <span className={filters.status === "current" ? "active" : ""}>CURRENT</span>
-        <span className={filters.status === "filled" ? "active" : ""}>FILLED</span>
-        <span className={filters.status === "unassigned" ? "active" : ""}>NOT ASSIGNED</span>
+        <button className={filters.status === "current" ? "active" : ""} onClick={() => onStatusFilter?.("current")}>CURRENT</button>
+        <button className={filters.status === "filled" ? "active" : ""} onClick={() => onStatusFilter?.("filled")}>FILLED</button>
+        <button className={filters.status === "unassigned" ? "active" : ""} onClick={() => onStatusFilter?.("unassigned")}>NOT ASSIGNED</button>
       </div>
       <div className="pool-search">
         <Icons.Search size={12} />
