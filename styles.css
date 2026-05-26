@@ -5142,6 +5142,165 @@ body { overflow: hidden; }
   margin-bottom: var(--s3);
 }
 
+/* ───────────────────────── Workers page ───────────────────────── */
+.workers-main {
+  overflow: hidden;
+}
+.workers-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+.workers-metrics {
+  grid-template-columns: repeat(5, 1fr);
+}
+.workers-tools {
+  flex-shrink: 0;
+}
+.workers-filter {
+  min-width: 180px;
+}
+.workers-table {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface-0);
+}
+.workers-head,
+.workers-row {
+  display: grid;
+  grid-template-columns: 320px 190px 150px minmax(420px, 1fr);
+  gap: var(--s3);
+  align-items: stretch;
+}
+.workers-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px var(--s5);
+  border-bottom: 1px solid var(--ink-border);
+  background: var(--surface-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.workers-row {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--ink-border);
+  background: var(--surface-0);
+  padding: 10px var(--s5);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.workers-row:hover { background: var(--surface-1); }
+.workers-row.selected { background: var(--signal-soft); box-shadow: inset 0 0 0 1px var(--signal-line); }
+.workers-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+.worker-main {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s3);
+}
+.worker-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.worker-copy .name {
+  font-size: 14px;
+  color: var(--ink-0);
+  font-weight: 500;
+  line-height: 1.2;
+}
+.worker-copy .meta,
+.workers-cell .meta,
+.worker-week-cell .meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+.worker-crew .val,
+.worker-today .meta {
+  font-size: 13px;
+  color: var(--ink-0);
+  line-height: 1.2;
+}
+.worker-today {
+  align-items: flex-start;
+}
+.worker-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.worker-week-cell {
+  min-height: 58px;
+  padding: 5px 6px;
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.worker-week-cell .dow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+.worker-week-cell .lbl {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--ink-0);
+}
+.worker-week-cell.status-work { background: var(--status-ok-soft); border-color: oklch(0.55 0.13 145 / 0.35); }
+.worker-week-cell.status-pto,
+.worker-week-cell.status-vacation { background: var(--status-warn-soft); border-color: oklch(0.62 0.12 85 / 0.35); }
+.worker-week-cell.status-training,
+.worker-week-cell.status-shop,
+.worker-week-cell.status-office { background: var(--status-info-soft); border-color: oklch(0.55 0.12 240 / 0.30); }
+.worker-week-cell.status-off { background: var(--surface-1); }
+.worker-week-cell.status-sick { background: var(--status-stop-soft); border-color: oklch(0.58 0.20 25 / 0.35); }
+.workers-empty {
+  padding: var(--s5);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.worker-detail-drawer .proj-stats {
+  grid-template-columns: repeat(2, 1fr);
+}
+.worker-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (max-width: 1100px) {
+  .workers-metrics { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .workers-metrics { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* Mobile reflow */
 @media (max-width: 1100px) {
   .pipe-hero { grid-template-columns: 1fr 1fr 1fr 1fr; }

@@ -74,7 +74,7 @@ function ProjSidebar({ collapsed }) {
       { ico: Icons.Schedule, label: "Projects",   badge: "141", active: true, href: "Projects.html" },
       { ico: Icons.Building, label: "Customers", href: "Customers.html" },
       { ico: Icons.Wrench,   label: "Equipment", href: "Equipment.html" },
-      { ico: Icons.Users,    label: "Workers",   badge: "203" },
+      { ico: Icons.Users,    label: "Workers",   badge: "203", href: "Workers.html" },
     ]},
   ];
   return (

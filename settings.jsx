@@ -90,7 +90,7 @@ function SetSidebar({ collapsed }) {
       { ico: Icons.Schedule, label: "Projects",   badge: "141", href: "Projects.html" },
       { ico: Icons.Building, label: "Customers", href: "Customers.html" },
       { ico: Icons.Wrench,   label: "Equipment", href: "Equipment.html" },
-      { ico: Icons.Users,    label: "Workers",    badge: "203", href: "Settings.html#workers" },
+      { ico: Icons.Users,    label: "Workers",    badge: "203", href: "Workers.html" },
     ]},
   ];
   return (
@@ -563,7 +563,7 @@ function WorkersPanel() {
       if (!q) return true;
       return `${w.name} ${w.role} ${w.init} ${crew?.name || ""} ${crew?.division || ""}`.toLowerCase().includes(q);
     });
-  }, [workers, query, roleFilter, scope, crewsByWorker]);
+  }, [workers, query, roleFilter, scope]);
 
   return (
     <>
@@ -588,7 +588,7 @@ function WorkersPanel() {
         </div>
         <div className="set-metric">
           <span className="l">Bench / unassigned</span>
-          <span className="v">{workers.filter(w => !crewsByWorker[w.id]).length}</span>
+          <span className="v">{workers.filter(w => !w.crew).length}</span>
         </div>
       </div>
       <div className="cust-tools" style={{ padding: 0, marginBottom: 16 }}>
