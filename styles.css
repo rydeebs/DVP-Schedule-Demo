@@ -5893,7 +5893,7 @@ body { overflow: hidden; }
   border: 1px solid var(--ink-border);
   border-radius: var(--r);
   margin-bottom: var(--s4);
-  overflow: hidden;
+  overflow: visible;
 }
 .cal-card-hdr {
   display: flex; align-items: center; gap: var(--s3);
@@ -6018,7 +6018,7 @@ body { overflow: hidden; }
 /* Add-calendar row */
 .set-add-row {
   display: grid;
-  grid-template-columns: 1fr 200px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 200px) auto;
   gap: var(--s2);
   padding: var(--s3) var(--s4);
   background: var(--surface-1);
@@ -6033,6 +6033,150 @@ body { overflow: hidden; }
   align-items: center;
 }
 
+.set-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ink-border);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: var(--s4);
+}
+.set-metric {
+  background: var(--surface-1);
+  padding: var(--s3) var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.set-metric .l {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.set-metric .v {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink-0);
+}
+.set-panel {
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+.set-field-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 320px);
+  gap: var(--s4);
+  align-items: center;
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--ink-border);
+}
+.set-field-row:first-child { border-top: none; }
+.set-field-row .lbl {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--ink-0);
+  font-weight: 500;
+}
+.set-field-row .help {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+.set-switch {
+  justify-self: end;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  display: inline-flex;
+  cursor: pointer;
+}
+.set-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.set-switch span {
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--ink-border);
+  transition: background var(--d-fast), border var(--d-fast);
+}
+.set-switch span::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  border-radius: 50%;
+  background: var(--surface-0);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--d-fast);
+}
+.set-switch input:checked + span {
+  background: var(--signal);
+  border-color: var(--signal);
+}
+.set-switch input:checked + span::after {
+  transform: translateX(18px);
+}
+.set-object-table {
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+.set-object-head,
+.set-object-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 150px 120px 96px;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s2) var(--s4);
+}
+.set-object-head {
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--ink-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.set-object-row {
+  border-top: 1px solid var(--ink-border);
+  min-height: 44px;
+}
+.set-object-row:first-of-type { border-top: none; }
+.set-object-row .nm {
+  font-size: var(--text-sm);
+  color: var(--ink-0);
+  font-weight: 500;
+}
+.set-object-row .code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-1);
+  letter-spacing: 0.04em;
+}
+.set-object-row .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
 /* Mobile */
 @media (max-width: 900px) {
   .settings { grid-template-columns: 1fr; }
@@ -6040,6 +6184,11 @@ body { overflow: hidden; }
   .cal-card-body { grid-template-columns: 1fr; row-gap: 6px; }
   .cal-card-body .lbl { padding-top: 0; }
   .set-add-row { grid-template-columns: 1fr; }
+  .set-metric-grid { grid-template-columns: 1fr; }
+  .set-field-row,
+  .set-object-head,
+  .set-object-row { grid-template-columns: 1fr; }
+  .set-switch { justify-self: start; }
 }
 
 /* ───────────────────── Focus ring ───────────────────── */

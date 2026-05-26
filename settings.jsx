@@ -189,7 +189,7 @@ function CalCard({ cal, onUpdate, onDelete }) {
         <span className="kind-pill">{cal.kindLabel}</span>
         <div style={{ flex: 1 }}></div>
         <button className="icon-btn" aria-label="Rename"><SetIcons.Pencil size={14} /></button>
-        <button className="icon-btn" aria-label="Delete"><SetIcons.Trash size={14} /></button>
+        <button className="icon-btn" aria-label="Delete" onClick={onDelete}><SetIcons.Trash size={14} /></button>
       </header>
       <div className="cal-card-body">
         <label className="lbl">Color Rule</label>
@@ -313,6 +313,285 @@ function CalCard({ cal, onUpdate, onDelete }) {
   );
 }
 
+const SETTINGS_CONTENT = {
+  COMPANY: {
+    "JOB BOARD": {
+      title: "Job Board",
+      summary: "Default board behavior, dispatch warnings, and job-card display rules.",
+      metrics: [
+        ["Default view", "Board"],
+        ["Auto assign", "Off"],
+        ["Warnings", "3 active"],
+      ],
+      fields: [
+        { label: "Default board view", type: "select", value: "Board", options: ["Board", "Crew", "Dispatch"] },
+        { label: "Unassigned job age warning", type: "select", value: "24 hours", options: ["Same day", "24 hours", "48 hours", "1 week"] },
+        { label: "Require customer notification", type: "toggle", value: true },
+        { label: "Show weather warnings", type: "toggle", value: true },
+      ],
+    },
+    PAYROLL: {
+      title: "Payroll",
+      summary: "Crew time rounding, overtime thresholds, and export readiness.",
+      metrics: [["Rounding", "15 min"], ["Overtime", "40 hr"], ["Exports", "Weekly"]],
+      fields: [
+        { label: "Time rounding", type: "select", value: "15 minutes", options: ["None", "5 minutes", "10 minutes", "15 minutes"] },
+        { label: "Overtime threshold", type: "select", value: "40 hours", options: ["8 hours/day", "40 hours", "Prevailing wage rules"] },
+        { label: "Require foreman approval", type: "toggle", value: true },
+        { label: "Auto-lock approved weeks", type: "toggle", value: false },
+      ],
+    },
+    "CLOCK IN": {
+      title: "Clock In",
+      summary: "Mobile clock-in constraints and GPS capture settings.",
+      metrics: [["GPS", "Required"], ["Geofence", "500 ft"], ["Grace", "7 min"]],
+      fields: [
+        { label: "GPS required", type: "toggle", value: true },
+        { label: "Geofence radius", type: "select", value: "500 ft", options: ["250 ft", "500 ft", "1,000 ft", "Off"] },
+        { label: "Late grace period", type: "select", value: "7 minutes", options: ["0 minutes", "5 minutes", "7 minutes", "10 minutes"] },
+        { label: "Allow offline clock-in", type: "toggle", value: true },
+      ],
+    },
+    MISC: {
+      title: "Misc",
+      summary: "General application defaults for field operations.",
+      metrics: [["Timezone", "Eastern"], ["Units", "US"], ["Theme", "System"]],
+      fields: [
+        { label: "Timezone", type: "select", value: "America/New_York", options: ["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles"] },
+        { label: "Measurement units", type: "select", value: "US customary", options: ["US customary", "Metric"] },
+        { label: "Show training hints", type: "toggle", value: false },
+        { label: "Enable beta modules", type: "toggle", value: false },
+      ],
+    },
+    BILLING: {
+      title: "Billing",
+      summary: "Invoice, work order, and cost-code defaults.",
+      metrics: [["Terms", "Net 30"], ["Markup", "12%"], ["Holdbacks", "Off"]],
+      fields: [
+        { label: "Default payment terms", type: "select", value: "Net 30", options: ["Due on receipt", "Net 15", "Net 30", "Net 45"] },
+        { label: "Equipment markup", type: "select", value: "12%", options: ["0%", "8%", "12%", "15%", "Custom"] },
+        { label: "Require PO before dispatch", type: "toggle", value: true },
+        { label: "Auto-create invoice draft", type: "toggle", value: false },
+      ],
+    },
+    DISPATCH: {
+      title: "Dispatch",
+      summary: "Driver notification and dispatch readiness rules.",
+      metrics: [["Notify", "Drivers"], ["Readiness", "78%"], ["Cutoff", "5:30 PM"]],
+      fields: [
+        { label: "Default notification target", type: "select", value: "Drivers + foremen", options: ["Drivers", "Foremen", "Drivers + foremen", "All crew members"] },
+        { label: "Readiness cutoff", type: "select", value: "5:30 PM prior day", options: ["Same day 5:00 AM", "5:30 PM prior day", "24 hours prior"] },
+        { label: "Warn on duplicate truck", type: "toggle", value: true },
+        { label: "Warn on missing material window", type: "toggle", value: true },
+      ],
+    },
+    INTEGRATIONS: {
+      title: "Integrations",
+      summary: "Connected systems and synchronization windows.",
+      metrics: [["NetSuite", "Live"], ["Tenna", "Live"], ["Maps", "Ready"]],
+      fields: [
+        { label: "NetSuite sync", type: "select", value: "Every 15 minutes", options: ["Manual", "Every 15 minutes", "Hourly", "Nightly"] },
+        { label: "Tenna sync", type: "select", value: "Realtime", options: ["Realtime", "Every 5 minutes", "Every 15 minutes"] },
+        { label: "Google Maps routing", type: "toggle", value: true },
+        { label: "Webhook retries", type: "toggle", value: true },
+      ],
+    },
+    FORMS: {
+      title: "Forms",
+      summary: "Form submission, review, and overdue behavior.",
+      metrics: [["Required", "Daily"], ["Review", "Foreman"], ["Late", "4 open"]],
+      fields: [
+        { label: "Daily report required", type: "toggle", value: true },
+        { label: "Equipment inspection required", type: "toggle", value: true },
+        { label: "Overdue escalation", type: "select", value: "Same day", options: ["None", "Same day", "Next morning", "Weekly digest"] },
+        { label: "Allow draft submission", type: "toggle", value: false },
+      ],
+    },
+    "TIME OFF": {
+      title: "Time Off Settings",
+      summary: "PTO visibility and scheduling constraints.",
+      metrics: [["Approval", "PM"], ["Blackout", "3 dates"], ["Calendar", "Visible"]],
+      fields: [
+        { label: "Show PTO on crew board", type: "toggle", value: true },
+        { label: "Approval owner", type: "select", value: "Project manager", options: ["Foreman", "Project manager", "Operations manager"] },
+        { label: "Prevent scheduling PTO workers", type: "toggle", value: true },
+        { label: "Blackout handling", type: "select", value: "Warn only", options: ["Warn only", "Block request", "Require approval"] },
+      ],
+    },
+  },
+  USER: {
+    USERS: {
+      title: "Users",
+      summary: "Application users and access status.",
+      metrics: [["Users", "12"], ["Admins", "3"], ["Pending", "1"]],
+      fields: [
+        { label: "Default role", type: "select", value: "Dispatcher", options: ["Admin", "Dispatcher", "Project Manager", "Foreman"] },
+        { label: "Require MFA", type: "toggle", value: true },
+        { label: "Session timeout", type: "select", value: "8 hours", options: ["1 hour", "4 hours", "8 hours", "24 hours"] },
+        { label: "Allow mobile access", type: "toggle", value: true },
+      ],
+    },
+    ROLES: {
+      title: "User Roles",
+      summary: "Permission presets for office and field teams.",
+      metrics: [["Roles", "6"], ["Custom", "2"], ["Locked", "4"]],
+      fields: [
+        { label: "Foreman can edit crew", type: "toggle", value: true },
+        { label: "Dispatcher can override conflicts", type: "toggle", value: true },
+        { label: "PM can approve payroll", type: "toggle", value: false },
+        { label: "Default new-user role", type: "select", value: "Foreman", options: ["Viewer", "Foreman", "Dispatcher", "Project Manager"] },
+      ],
+    },
+    NOTIFICATIONS: {
+      title: "Notifications",
+      summary: "Email, push, and digest preferences.",
+      metrics: [["Push", "On"], ["Digest", "Daily"], ["SMS", "Off"]],
+      fields: [
+        { label: "Dispatch push alerts", type: "toggle", value: true },
+        { label: "Daily digest", type: "select", value: "6:00 AM", options: ["Off", "6:00 AM", "12:00 PM", "5:00 PM"] },
+        { label: "Escalation channel", type: "select", value: "Email + push", options: ["Email", "Push", "Email + push", "SMS"] },
+        { label: "Notify on assignment change", type: "toggle", value: true },
+      ],
+    },
+    SECURITY: {
+      title: "Security",
+      summary: "Authentication, audit log, and sensitive action controls.",
+      metrics: [["MFA", "Required"], ["Audit", "365 d"], ["SSO", "Ready"]],
+      fields: [
+        { label: "MFA enforcement", type: "toggle", value: true },
+        { label: "Audit retention", type: "select", value: "365 days", options: ["90 days", "180 days", "365 days", "Forever"] },
+        { label: "Require reason for deletes", type: "toggle", value: true },
+        { label: "SSO provider", type: "select", value: "Not configured", options: ["Not configured", "Google Workspace", "Microsoft Entra", "Okta"] },
+      ],
+    },
+  },
+};
+
+const DATA_OBJECTS = {
+  "WORK STATUSES": ["Confirmed", "Not Confirmed", "On Hold", "Moved", "Cancelled", "Closed"],
+  "ADMINISTRATIVE JOBS": ["Yard Work", "Shop Repair", "Training", "Travel", "Office Support"],
+  "JOB TYPES": ["Paving", "Excavation", "Concrete", "Milling", "Striping", "Repair"],
+  "WORKER TITLES": ["Foreman", "Operator", "Laborer", "CDL Driver", "Grade Checker", "Mason"],
+  "WORK CODES": ["PAVE", "EXC", "CONC", "MILL", "TRUCK", "SHOP"],
+  "COMP CODES": ["5606", "8227", "8810", "7219"],
+  EQUIPMENT: ["Paver", "Roller", "Excavator", "Loader", "Sweeper", "Striper"],
+  VEHICLES: ["Tri-axle", "Pickup", "Service Truck", "Lowboy", "Dump Truck"],
+  MATERIALS: ["HMA 9.5mm", "HMA 19mm", "DGA", "Tack Coat", "Concrete 4000 PSI"],
+  VENDORS: ["Tilcon Mt. Hope", "Stavola Quarry", "Eastern Concrete", "Asphalt Solutions"],
+  SUBCONTRACTORS: ["CenterPoint Hauling", "Diamond State Excavation", "Frankel Aggregates"],
+  "MISC ITEMS": ["Mobilization", "Traffic Control", "Sawcut", "Disposal", "Permit Fee"],
+  DIVISIONS: ["Paving", "Excavation", "Concrete", "Milling", "Striping"],
+};
+
+function SettingsPanel({ section }) {
+  const [values, setValues] = sUseState(() => Object.fromEntries(section.fields.map(f => [f.label, f.value])));
+  sUseEffect(() => {
+    setValues(Object.fromEntries(section.fields.map(f => [f.label, f.value])));
+  }, [section]);
+  return (
+    <>
+      <div className="set-section-h">
+        <span className="num">{section.metrics?.length || section.fields.length}</span>
+        <span className="h">{section.title}</span>
+        <span className="hint">{section.summary}</span>
+        <div className="right"><StatusPill variant="ok">ACTIVE</StatusPill></div>
+      </div>
+      {section.metrics?.length > 0 && (
+        <div className="set-metric-grid">
+          {section.metrics.map(([label, value]) => (
+            <div className="set-metric" key={label}>
+              <span className="l">{label}</span>
+              <span className="v">{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="set-panel">
+        {section.fields.map(field => (
+          <div className="set-field-row" key={field.label}>
+            <div>
+              <span className="lbl">{field.label}</span>
+              <span className="help">{field.type === "toggle" ? "Enabled or disabled immediately on save." : "Choose the default value for this setting."}</span>
+            </div>
+            {field.type === "toggle" ? (
+              <label className="set-switch">
+                <input
+                  type="checkbox"
+                  checked={!!values[field.label]}
+                  onChange={(e) => setValues(prev => ({ ...prev, [field.label]: e.target.checked }))}
+                />
+                <span></span>
+              </label>
+            ) : (
+              <div className="set-select-wrap">
+                <select
+                  className="set-select"
+                  value={values[field.label]}
+                  onChange={(e) => setValues(prev => ({ ...prev, [field.label]: e.target.value }))}
+                >
+                  {field.options.map(opt => <option key={opt}>{opt}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function DataObjectsPanel({ subtab }) {
+  const [rows, setRows] = sUseState(() => DATA_OBJECTS[subtab] || []);
+  const [draft, setDraft] = sUseState("");
+  sUseEffect(() => {
+    setRows(DATA_OBJECTS[subtab] || []);
+    setDraft("");
+  }, [subtab]);
+  const addRow = () => {
+    if (!draft.trim()) return;
+    setRows(prev => [...prev, draft.trim()]);
+    setDraft("");
+  };
+  return (
+    <>
+      <div className="set-section-h">
+        <span className="num">{rows.length}</span>
+        <span className="h">{subtab}</span>
+        <span className="hint">Manage labels, active status, and default ordering.</span>
+        <div className="right"><button className="btn btn-secondary">Import CSV</button></div>
+      </div>
+      <div className="set-object-table">
+        <div className="set-object-head">
+          <span>Name</span><span>Code</span><span>Status</span><span>Actions</span>
+        </div>
+        {rows.map((name, index) => (
+          <div className="set-object-row" key={`${name}-${index}`}>
+            <span className="nm">{name}</span>
+            <span className="code">{name.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 14) || "ITEM"}</span>
+            <span><StatusPill variant="ok">ACTIVE</StatusPill></span>
+            <span className="actions">
+              <button className="icon-btn" aria-label={`Edit ${name}`}><SetIcons.Pencil size={13} /></button>
+              <button className="icon-btn" aria-label={`Delete ${name}`} onClick={() => setRows(prev => prev.filter((_, i) => i !== index))}><SetIcons.Trash size={13} /></button>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="set-add-row" style={{ marginTop: "var(--s4)" }}>
+        <input
+          className="set-input"
+          placeholder={`Add ${subtab.toLowerCase()} item...`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addRow(); }}
+        />
+        <button className="btn btn-primary" disabled={!draft.trim()} onClick={addRow}>
+          <SetIcons.Plus size={12} /> ADD
+        </button>
+      </div>
+    </>
+  );
+}
+
 /* ───────── App root ───────── */
 function SettingsApp() {
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -415,7 +694,52 @@ function SettingsApp() {
     setNewName("");
   };
 
-  const subtabs = ["CALENDARS", "JOB BOARD", "PAYROLL", "CLOCK IN", "MISC", "BILLING", "DISPATCH"];
+  const tabSubtabs = {
+    COMPANY: ["CALENDARS", "JOB BOARD", "PAYROLL", "CLOCK IN", "MISC", "BILLING", "DISPATCH", "INTEGRATIONS", "FORMS", "TIME OFF"],
+    USER: ["USERS", "ROLES", "NOTIFICATIONS", "SECURITY"],
+    DATA: Object.keys(DATA_OBJECTS),
+  };
+  const railRoutes = {
+    settings: ["COMPANY", "CALENDARS"],
+    users: ["USER", "USERS"],
+    "user-roles": ["USER", "ROLES"],
+    integrations: ["COMPANY", "INTEGRATIONS"],
+    forms: ["COMPANY", "FORMS"],
+    "time-off": ["COMPANY", "TIME OFF"],
+    "work-statuses": ["DATA", "WORK STATUSES"],
+    "admin-jobs": ["DATA", "ADMINISTRATIVE JOBS"],
+    "job-types": ["DATA", "JOB TYPES"],
+    "worker-titles": ["DATA", "WORKER TITLES"],
+    "work-codes": ["DATA", "WORK CODES"],
+    "comp-codes": ["DATA", "COMP CODES"],
+    equipment: ["DATA", "EQUIPMENT"],
+    vehicles: ["DATA", "VEHICLES"],
+    materials: ["DATA", "MATERIALS"],
+    vendors: ["DATA", "VENDORS"],
+    subcontractors: ["DATA", "SUBCONTRACTORS"],
+    "misc-items": ["DATA", "MISC ITEMS"],
+    divisions: ["DATA", "DIVISIONS"],
+  };
+  const activeSubtabs = tabSubtabs[tab];
+  const activeSection = SETTINGS_CONTENT[tab]?.[subtab];
+  const handleRailPick = (key) => {
+    setRailKey(key);
+    const route = railRoutes[key];
+    if (!route) return;
+    setTab(route[0]);
+    setSubtab(route[1]);
+  };
+  const handleTabPick = (nextTab) => {
+    setTab(nextTab);
+    setSubtab(tabSubtabs[nextTab][0]);
+    const routeKey = Object.entries(railRoutes).find(([, route]) => route[0] === nextTab && route[1] === tabSubtabs[nextTab][0])?.[0];
+    if (routeKey) setRailKey(routeKey);
+  };
+  const handleSubtabPick = (nextSubtab) => {
+    setSubtab(nextSubtab);
+    const routeKey = Object.entries(railRoutes).find(([, route]) => route[0] === tab && route[1] === nextSubtab)?.[0];
+    if (routeKey) setRailKey(routeKey);
+  };
 
   return (
     <div className="app" data-collapsed={String(!!t.sidebarCollapsed)}>
@@ -428,7 +752,7 @@ function SettingsApp() {
         <div className="subhdr">
           <div className="subhdr-title">
             <span className="date-num" style={{ fontSize: 26 }}>Settings</span>
-            <span className="date-day">COMPANY CONFIG · 3 CALENDARS · 12 USERS · v991</span>
+            <span className="date-day">COMPANY CONFIG · {calendars.length} CALENDARS · 12 USERS · v991</span>
           </div>
           <div style={{ flex: 1 }}></div>
           <div className="set-utility">
@@ -448,7 +772,7 @@ function SettingsApp() {
         </div>
 
         <div className="settings">
-          <SettingsRail activeKey={railKey} onPick={setRailKey} />
+          <SettingsRail activeKey={railKey} onPick={handleRailPick} />
 
           <section className="set-main">
             <div className="set-tabs">
@@ -458,16 +782,16 @@ function SettingsApp() {
                 { key: "DATA",    lbl: "Data Objects" },
               ].map(x => (
                 <button key={x.key} className={`set-tab ${tab === x.key ? "active" : ""}`}
-                  onClick={() => setTab(x.key)}>
+                  onClick={() => handleTabPick(x.key)}>
                   {x.lbl}
                 </button>
               ))}
             </div>
 
             <div className="set-subtabs">
-              {subtabs.map(st => (
+              {activeSubtabs.map(st => (
                 <button key={st} className={`set-subtab ${subtab === st ? "active" : ""}`}
-                  onClick={() => setSubtab(st)}>
+                  onClick={() => handleSubtabPick(st)}>
                   {st}
                 </button>
               ))}
@@ -515,12 +839,16 @@ function SettingsApp() {
                 </>
               )}
 
-              {tab === "COMPANY" && subtab !== "CALENDARS" && (
-                <EmptySection label={subtab} />
+              {tab === "COMPANY" && subtab !== "CALENDARS" && activeSection && (
+                <SettingsPanel section={activeSection} />
               )}
 
-              {tab !== "COMPANY" && (
-                <EmptySection label={tab === "USER" ? "User Settings" : "Data Objects"} />
+              {tab === "USER" && activeSection && (
+                <SettingsPanel section={activeSection} />
+              )}
+
+              {tab === "DATA" && (
+                <DataObjectsPanel subtab={subtab} />
               )}
             </div>
           </section>
