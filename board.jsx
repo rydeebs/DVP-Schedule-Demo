@@ -133,25 +133,21 @@ function MetricsRail({ totals }) {
         label="Jobs scheduled — Tue"
         value={totals.scheduled}
         sub={`of ${totals.total} active`}
-        footer={<><span className="delta-up">▲ {totals.deltaSched}</span> vs. last Tue · {totals.unassigned} unassigned</>}
       />
       <HeroMetric
         label="Workers on the clock"
         value={totals.workersOn}
         sub={`/ ${totals.workersRoster}`}
-        footer={<>{totals.bench} on bench · {totals.pto} PTO · <span className="delta-down">{totals.sick} sick</span></>}
       />
       <HeroMetric
         label="Fleet dispatched"
         value={totals.trucks}
         sub={`/ ${totals.fleet}`}
-        footer={<>Tenna live · {totals.gpsActive} crews tracked · 0 offline</>}
       />
       <HeroMetric
         label="Forms outstanding"
         value={totals.formsOpen}
         sub="open"
-        footer={<>{totals.formsOverdue} overdue · last submit 14 min ago</>}
       />
       <div className="metric-cta">
         <span className="label" style={{
