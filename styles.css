@@ -336,6 +336,14 @@ body { overflow: hidden; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.subhdr-title .date-compact {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
 
 .date-nav { display: flex; align-items: center; gap: var(--s1); }
 .date-nav .icon-btn { width: 28px; height: 28px; border: 1px solid var(--ink-border); border-radius: var(--r); }

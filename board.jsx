@@ -96,14 +96,16 @@ function Sidebar({ collapsed }) {
 
 /* ─────────────────────────── Subheader ─────────────────────────── */
 function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo }) {
-  const dayLabels = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
   const d = date;
-  const monthName = d.toLocaleString("en-US",{ month: "short" }).toUpperCase();
+  const dateLabel = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
   return (
     <div className="subhdr">
       <div className="subhdr-title">
-        <span className="date-num">{monthName} {String(d.getDate()).padStart(2,"0")}</span>
-        <span className="date-day">{dayLabels[d.getDay()]} · WK 22 · {d.getFullYear()}</span>
+        <span className="date-num date-compact">{dateLabel}</span>
       </div>
       <div className="date-nav">
         <button className="icon-btn" onClick={() => onDate(-1)} aria-label="Previous day"><Icons.ChevL size={14} /></button>
