@@ -5,7 +5,7 @@
 const { useState: bUseState, useRef: bUseRef, useEffect: bUseEffect, useMemo: bUseMemo, useCallback: bUseCallback } = React;
 
 /* ─────────────────────────── Header ─────────────────────────── */
-function Header({ collapsed, onToggleSidebar, dark, onToggleDark }) {
+function Header({ collapsed, onToggleSidebar, dark, onToggleDark, onCommand }) {
   return (
     <header className="app-header hdr">
       <div className="hdr-left">
@@ -25,7 +25,7 @@ function Header({ collapsed, onToggleSidebar, dark, onToggleDark }) {
         </div>
       </div>
       <div className="hdr-right">
-        <button className="cmdk" aria-label="Open command palette">
+        <button className="cmdk" onClick={onCommand} aria-label="Open command palette">
           <Icons.Search size={12} />
           <span>Find jobs, crews, workers…</span>
           <span className="cmdk-kbd">⌘K</span>
@@ -95,7 +95,7 @@ function Sidebar({ collapsed }) {
 }
 
 /* ─────────────────────────── Subheader ─────────────────────────── */
-function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo }) {
+function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo, onAddJob }) {
   const d = date;
   const dateLabel = d.toLocaleDateString("en-US", {
     month: "short",
@@ -132,7 +132,7 @@ function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo }) {
       ) : (
         <button className="btn btn-ghost"><Icons.Undo size={14} /> History</button>
       )}
-      <button className="btn btn-secondary"><Icons.Plus size={14} /> Add Job</button>
+      <button className="btn btn-secondary" onClick={() => onAddJob?.()}><Icons.Plus size={14} /> Add Job</button>
       <button className="btn btn-primary">Notify Crews · {totals.notifyCount}</button>
     </div>
   );
@@ -179,7 +179,7 @@ function MetricsRail({ totals }) {
 }
 
 /* ─────────────────────────── Unassigned pool ─────────────────────────── */
-function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery }) {
+function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery, onOpenJob }) {
   const filtered = jobs.filter(j =>
     !query ||
     j.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -216,6 +216,7 @@ function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery }) {
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                onOpen={onOpenJob}
               />
             ))}
           </>
@@ -230,6 +231,7 @@ function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery }) {
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                onOpen={onOpenJob}
               />
             ))}
           </>
@@ -244,6 +246,7 @@ function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery }) {
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                onOpen={onOpenJob}
               />
             ))}
           </>
@@ -266,6 +269,7 @@ function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery }) {
 function CrewLane({
   crew, jobs, dragHandlers, dropHandlers,
   isDropTarget, isAssigning, snapJobId,
+  onOpenJob, onAddJob,
 }) {
   const D = window.DATA;
   const foreman = D.lookup(crew.foremanId);
@@ -326,6 +330,7 @@ function CrewLane({
             <JobCard key={j.id} job={j}
               dragHandlers={dragHandlers}
               snapIn={snapJobId === j.id}
+              onOpen={onOpenJob}
             />
           ))
         )}
@@ -335,14 +340,14 @@ function CrewLane({
         <span className="total">
           {jobs.length} JOB{jobs.length === 1 ? "" : "S"} · {members.length} CREW · {crew.truckIds.length} TRUCKS
         </span>
-        <button className="lane-action">+ ADD</button>
+        <button className="lane-action" onClick={() => onAddJob?.(crew.id)}>+ ADD</button>
       </footer>
     </section>
   );
 }
 
 /* ─────────────────────────── Add-a-crew lane ─────────────────────────── */
-function AddCrewLane() {
+function AddCrewLane({ onAddCrew }) {
   return (
     <section className="lane" style={{
       border: "1px dashed var(--ink-border)",
@@ -351,7 +356,7 @@ function AddCrewLane() {
       alignItems: "center", justifyContent: "center",
       display: "flex"
     }}>
-      <button style={{
+      <button onClick={onAddCrew} style={{
         background: "transparent", border: "none", cursor: "pointer",
         color: "var(--ink-2)", fontFamily: "var(--font-mono)",
         fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase",
@@ -361,6 +366,202 @@ function AddCrewLane() {
         SPAWN CREW
       </button>
     </section>
+  );
+}
+
+function CommandPalette({ open, query, setQuery, jobs, crews, onClose, onOpenJob, onOpenCrew }) {
+  if (!open) return null;
+  const normalized = query.trim().toLowerCase();
+  const crewRows = crews
+    .filter(c => !normalized || `${c.name} ${c.division}`.toLowerCase().includes(normalized))
+    .slice(0, 6)
+    .map(c => ({ kind: "Crew", id: c.id, title: c.name, meta: c.division, onSelect: () => onOpenCrew?.(c.id) }));
+  const workerRows = crews
+    .flatMap(c => c.workerIds.map(id => ({ worker: window.DATA.lookup(id), crew: c })).filter(row => row.worker))
+    .filter(row => !normalized || `${row.worker.name} ${row.worker.role} ${row.crew.name}`.toLowerCase().includes(normalized))
+    .slice(0, 6)
+    .map(row => ({
+      kind: "Worker",
+      id: row.worker.id,
+      title: row.worker.name,
+      meta: `${row.worker.role} · ${row.crew.name}`,
+      onSelect: () => onOpenCrew?.(row.crew.id),
+    }));
+  const jobRows = jobs
+    .filter(j => !normalized || `${j.code} ${j.name} ${j.customer} ${j.location}`.toLowerCase().includes(normalized))
+    .slice(0, 8)
+    .map(j => ({ kind: "Job", id: j.id, title: `${j.code} · ${j.name}`, meta: `${j.customer} · ${j.location}`, onSelect: () => onOpenJob?.(j) }));
+  const rows = [...jobRows, ...crewRows, ...workerRows];
+
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <section className="command-modal" role="dialog" aria-label="Command palette" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="command-search">
+          <Icons.Search size={14} />
+          <input
+            autoFocus
+            placeholder="Search jobs, crews, customers, locations..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+        <div className="command-list">
+          {rows.length === 0 ? (
+            <div className="command-empty">No matches</div>
+          ) : rows.map(row => (
+            <button key={`${row.kind}-${row.id}`} className="command-row" onClick={() => { row.onSelect(); onClose(); }}>
+              <span className="kind">{row.kind}</span>
+              <span className="body">
+                <strong>{row.title}</strong>
+                <span>{row.meta}</span>
+              </span>
+              <Icons.ChevR size={12} />
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function JobFormDrawer({ open, crews, initialCrewId, onClose, onSave }) {
+  const [form, setForm] = bUseState({
+    name: "", customer: "", location: "", type: "paving",
+    hours: 8, priority: "med", crew: initialCrewId || "",
+  });
+
+  bUseEffect(() => {
+    if (open) {
+      setForm({
+        name: "", customer: "", location: "", type: "paving",
+        hours: 8, priority: "med", crew: initialCrewId || "",
+      });
+    }
+  }, [open, initialCrewId]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.name.trim() && form.customer.trim() && form.location.trim();
+
+  return (
+    <div className="proj-drawer add-form" role="dialog" aria-label="Add job">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">NEW JOB</span>
+          <h2 className="nm">Add job to crew board</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="add-form-section">
+          <div className="h">Job information</div>
+          <FormField label="Job name" required>
+            <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Project or task name" />
+          </FormField>
+          <div className="add-form-grid-2">
+            <FormField label="Customer" required>
+              <input value={form.customer} onChange={(e) => setField("customer", e.target.value)} placeholder="Customer" />
+            </FormField>
+            <FormField label="Location" required>
+              <input value={form.location} onChange={(e) => setField("location", e.target.value)} placeholder="City, ST" />
+            </FormField>
+          </div>
+          <div className="add-form-grid-2">
+            <FormField label="Type">
+              <select value={form.type} onChange={(e) => setField("type", e.target.value)}>
+                {Object.entries(window.DATA.JOB_TYPES).map(([key, info]) => (
+                  <option key={key} value={key}>{info.label}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Priority">
+              <select value={form.priority} onChange={(e) => setField("priority", e.target.value)}>
+                <option value="high">High</option>
+                <option value="med">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </FormField>
+          </div>
+          <div className="add-form-grid-2">
+            <FormField label="Hours">
+              <input type="number" min="1" max="16" value={form.hours} onChange={(e) => setField("hours", Number(e.target.value) || 1)} />
+            </FormField>
+            <FormField label="Crew">
+              <select value={form.crew} onChange={(e) => setField("crew", e.target.value)}>
+                <option value="">Unassigned</option>
+                {crews.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </FormField>
+          </div>
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Add Job</button>
+      </footer>
+    </div>
+  );
+}
+
+function FormField({ label, required, children }) {
+  return (
+    <label className="add-form-field">
+      <span className="lbl">{label}{required && <span className="req">*</span>}</span>
+      {children}
+    </label>
+  );
+}
+
+function BoardJobDrawer({ job, crews, onClose, onAssign }) {
+  if (!job) return null;
+  const t = window.DATA.JOB_TYPES[job.type];
+  const crew = job.crew ? crews.find(c => c.id === job.crew) : null;
+  const qty =
+    job.tons ? `${job.tons} tons` :
+    job.yards ? `${job.yards} yards` :
+    job.sqyd ? `${job.sqyd.toLocaleString()} sq yd` :
+    job.lf ? `${job.lf.toLocaleString()} linear ft` : "Not set";
+
+  return (
+    <div className="proj-drawer" role="dialog" aria-label="Job detail">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">{job.code}</span>
+          <StatusPill variant={t.tone}>{t.label}</StatusPill>
+          <h2 className="nm">{job.name}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+        <div className="meta">
+          <Icons.Building size={11} /><span>{job.customer}</span>
+          <span className="sep">·</span>
+          <Icons.MapPin size={11} /><span>{job.location}</span>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="proj-stats">
+          <div className="s"><span className="l">Crew</span><span className="v" style={{ fontSize: 17 }}>{crew?.name || "Unassigned"}</span></div>
+          <div className="s"><span className="l">Hours</span><span className="v">{job.hours || "?"}</span></div>
+          <div className="s"><span className="l">Priority</span><span className="v" style={{ fontSize: 17 }}>{job.priority}</span></div>
+          <div className="s"><span className="l">Quantity</span><span className="v" style={{ fontSize: 17 }}>{qty}</span></div>
+        </div>
+        <div className="proj-info-row"><span className="lbl">Customer</span><span className="val">{job.customer}</span></div>
+        <div className="proj-info-row"><span className="lbl">Location</span><span className="val">{job.location}</span></div>
+        <div className="proj-info-row"><span className="lbl">Schedule</span><span className="val">{job.startTime ? `${job.startTime}-${job.endTime}` : `${job.hours}h unscheduled`}</span></div>
+        <div className="proj-info-row"><span className="lbl">Needs</span><span className="val">{job.needs || "Crew and equipment requirements not flagged"}</span></div>
+        <div className="proj-info-row"><span className="lbl">Notes</span><span className="val">{job.note || "No notes"}</span></div>
+        <div className="add-form-field" style={{ marginTop: 16 }}>
+          <span className="lbl">Assign crew</span>
+          <select value={job.crew || ""} onChange={(e) => onAssign(job.id, e.target.value || null)}>
+            <option value="">Unassigned</option>
+            {crews.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
+      </footer>
+    </div>
   );
 }
 
@@ -449,4 +650,5 @@ function UndoToast({ toast, onUndo }) {
 Object.assign(window, {
   Header, Sidebar, Subheader, MetricsRail,
   UnassignedPool, CrewLane, AddCrewLane, BenchBar, UndoToast,
+  CommandPalette, JobFormDrawer, BoardJobDrawer,
 });

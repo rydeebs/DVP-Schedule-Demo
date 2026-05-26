@@ -33,6 +33,10 @@ function App() {
   const [assigningLaneId, setAssigningLaneId] = aUseState(null);
   const [snapJobId, setSnapJobId] = aUseState(null);
   const [toast, setToast] = aUseState(null);
+  const [selectedJobId, setSelectedJobId] = aUseState(null);
+  const [addJobCrewId, setAddJobCrewId] = aUseState(null);
+  const [commandOpen, setCommandOpen] = aUseState(false);
+  const [commandQuery, setCommandQuery] = aUseState("");
   const toastTimerRef = aUseRef(null);
   const undoStackRef = aUseRef([]);
 
@@ -48,6 +52,7 @@ function App() {
   }, [jobs, crews]);
 
   const unassigned = aUseMemo(() => jobs.filter(j => !j.crew), [jobs]);
+  const selectedJob = aUseMemo(() => jobs.find(j => j.id === selectedJobId) || null, [jobs, selectedJobId]);
 
   const totals = aUseMemo(() => ({
     scheduled: jobs.filter(j => j.crew).length,
@@ -90,6 +95,15 @@ function App() {
         e.preventDefault();
         handleUndo();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen(true);
+      }
+      if (e.key === "Escape") {
+        setCommandOpen(false);
+        setSelectedJobId(null);
+        setAddJobCrewId(null);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -101,6 +115,7 @@ function App() {
       setDraggingId(job.id);
       try {
         e.dataTransfer.setData("text/plain", job.id);
+        e.dataTransfer.setData("application/x-dvp-job-id", job.id);
         e.dataTransfer.effectAllowed = "move";
       } catch (_) {}
     },
@@ -122,7 +137,7 @@ function App() {
     },
     onDrop: (e, crewId) => {
       e.preventDefault();
-      const jobId = e.dataTransfer.getData("text/plain") || draggingId;
+      const jobId = e.dataTransfer.getData("application/x-dvp-job-id") || e.dataTransfer.getData("text/plain") || draggingId;
       if (!jobId) return;
       assignJob(jobId, crewId);
       setDropTargetId(null);
@@ -133,23 +148,75 @@ function App() {
   const assignJob = aUseCallback((jobId, crewId) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
+    const normalizedCrewId = crewId || null;
     const prevCrew = job.crew;
-    if (prevCrew === crewId) return;
+    if (prevCrew === normalizedCrewId) return;
 
-    setJobs((prev) => prev.map(j => j.id === jobId ? { ...j, crew: crewId } : j));
+    setJobs((prev) => prev.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j));
     // Trigger lock-in animation
-    setAssigningLaneId(crewId);
+    setAssigningLaneId(normalizedCrewId);
     setSnapJobId(jobId);
     setTimeout(() => setAssigningLaneId(null), 360);
     setTimeout(() => setSnapJobId(null), 240);
 
-    const crewName = crews.find(c => c.id === crewId)?.name || "crew";
+    const crewName = normalizedCrewId ? (crews.find(c => c.id === normalizedCrewId)?.name || "crew") : "Unassigned";
     const prevName = prevCrew ? (crews.find(c => c.id === prevCrew)?.name || "crew") : "Unassigned";
     const msg = `<span class="num">${job.code}</span> · ${job.name.length > 36 ? job.name.slice(0,36)+"…" : job.name} → <strong>${crewName}</strong>`;
     showToast(msg, () => {
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, crew: prevCrew } : j));
     });
   }, [jobs, crews, showToast]);
+
+  const openAddJob = aUseCallback((crewId = null) => {
+    setAddJobCrewId(crewId || "");
+  }, []);
+
+  const addJob = aUseCallback((form) => {
+    const typePrefix = { paving: "P", excav: "X", mill: "M", conc: "C", stripe: "S", prep: "PR", repair: "R" }[form.type] || "J";
+    const id = `j-${Date.now()}`;
+    const newJob = {
+      id,
+      code: `${typePrefix}-${String(jobs.length + 2401).padStart(4, "0")}`,
+      name: form.name.trim(),
+      customer: form.customer.trim(),
+      location: form.location.trim(),
+      type: form.type,
+      hours: Number(form.hours) || 8,
+      crew: form.crew || null,
+      priority: form.priority || "med",
+      needs: form.crew ? undefined : "Crew assignment needed",
+    };
+    setJobs(prev => [newJob, ...prev]);
+    setAddJobCrewId(null);
+    setSelectedJobId(id);
+    const crewName = newJob.crew ? crews.find(c => c.id === newJob.crew)?.name : "Unassigned";
+    showToast(
+      `<span class="num">${newJob.code}</span> · ${newJob.name} added to <strong>${crewName || "Unassigned"}</strong>`,
+      () => {
+        setJobs(prev => prev.filter(j => j.id !== id));
+        setSelectedJobId(null);
+      }
+    );
+  }, [jobs.length, crews, showToast]);
+
+  const addCrew = aUseCallback(() => {
+    const id = `c-new-${Date.now()}`;
+    const newCrew = {
+      id,
+      name: `New Crew ${crews.length + 1}`,
+      division: "Field Ops",
+      foremanId: crews[0]?.foremanId,
+      workerIds: [],
+      truckIds: [],
+      equipment: [],
+      gpsActive: false,
+    };
+    setCrews(prev => [...prev, newCrew]);
+    showToast(`<strong>${newCrew.name}</strong> added to board`, () => {
+      setCrews(prev => prev.filter(c => c.id !== id));
+      setJobs(prev => prev.map(j => j.crew === id ? { ...j, crew: null } : j));
+    });
+  }, [crews, showToast]);
 
   const onDateNudge = (dir) => {
     if (dir === 0) {
@@ -184,6 +251,7 @@ function App() {
         onToggleSidebar={() => setTweak("sidebarCollapsed", !t.sidebarCollapsed)}
         dark={t.dark}
         onToggleDark={() => setTweak("dark", !t.dark)}
+        onCommand={() => setCommandOpen(true)}
       />
       <Sidebar collapsed={t.sidebarCollapsed} />
       <main className="main app-main">
@@ -193,6 +261,7 @@ function App() {
           totals={totals}
           canUndo={!!toast?.undoFn}
           onUndo={handleUndo}
+          onAddJob={openAddJob}
         />
         {t.showHeroRail && view === "BOARD" && <MetricsRail totals={totals} />}
 
@@ -204,6 +273,7 @@ function App() {
               draggingId={draggingId}
               query={query}
               setQuery={setQuery}
+              onOpenJob={(job) => setSelectedJobId(job.id)}
             />
             <div className="lanes">
               {crews.map(c => (
@@ -216,9 +286,11 @@ function App() {
                   isDropTarget={dropTargetId === c.id}
                   isAssigning={assigningLaneId === c.id}
                   snapJobId={snapJobId}
+                  onOpenJob={(job) => setSelectedJobId(job.id)}
+                  onAddJob={openAddJob}
                 />
               ))}
-              <AddCrewLane />
+              <AddCrewLane onAddCrew={addCrew} />
             </div>
             {t.showBench && <BenchBar bench={D.BENCH} />}
           </div>
@@ -237,7 +309,7 @@ function App() {
               },
               onDrop: (e, crewId, dayIdx) => {
                 e.preventDefault();
-                const jobId = e.dataTransfer.getData("text/plain") || draggingId;
+                const jobId = e.dataTransfer.getData("application/x-dvp-job-id") || e.dataTransfer.getData("text/plain") || draggingId;
                 if (jobId) {
                   assignJob(jobId, crewId);
                 }
@@ -247,6 +319,8 @@ function App() {
             }}
             isDropTarget={dropTargetId}
             snapJobId={snapJobId}
+            onOpenJob={(job) => setSelectedJobId(job.id)}
+            onAddJob={openAddJob}
           />
         )}
 
@@ -256,11 +330,41 @@ function App() {
             crews={crews}
             mapOnly={mapOnly}
             onToggleMap={() => setMapOnly(v => !v)}
+            onAddJob={openAddJob}
+            onOpenJob={(job) => setSelectedJobId(job.id)}
+            onNotify={() => showToast(`<strong>${totals.notifyCount}</strong> crew dispatch notifications queued`)}
           />
         )}
       </main>
 
       <UndoToast toast={toast} onUndo={handleUndo} />
+      <CommandPalette
+        open={commandOpen}
+        query={commandQuery}
+        setQuery={setCommandQuery}
+        jobs={jobs}
+        crews={crews}
+        onClose={() => setCommandOpen(false)}
+        onOpenJob={(job) => setSelectedJobId(job.id)}
+        onOpenCrew={(crewId) => {
+          setView("BOARD");
+          setDropTargetId(crewId);
+          window.setTimeout(() => setDropTargetId(null), 900);
+        }}
+      />
+      <JobFormDrawer
+        open={addJobCrewId !== null}
+        crews={crews}
+        initialCrewId={addJobCrewId || ""}
+        onClose={() => setAddJobCrewId(null)}
+        onSave={addJob}
+      />
+      <BoardJobDrawer
+        job={selectedJob}
+        crews={crews}
+        onClose={() => setSelectedJobId(null)}
+        onAssign={assignJob}
+      />
 
       {/* Tweaks panel */}
       <window.TweaksPanel title="Tweaks">

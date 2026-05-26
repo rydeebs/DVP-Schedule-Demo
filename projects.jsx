@@ -20,7 +20,7 @@ const PrIcons = {
 };
 
 /* ───────────────────── Header + Sidebar ───────────────────── */
-function ProjHeader({ collapsed, onToggleSidebar, dark, onToggleDark }) {
+function ProjHeader({ collapsed, onToggleSidebar, dark, onToggleDark, onCommand }) {
   return (
     <header className="app-header hdr">
       <div className="hdr-left">
@@ -40,7 +40,7 @@ function ProjHeader({ collapsed, onToggleSidebar, dark, onToggleDark }) {
         </div>
       </div>
       <div className="hdr-right">
-        <button className="cmdk" aria-label="Open command palette">
+        <button className="cmdk" onClick={onCommand} aria-label="Focus project search">
           <PrIcons.Search size={12} />
           <span>Find a project, customer, code…</span>
           <span className="cmdk-kbd">⌘K</span>
@@ -150,7 +150,7 @@ function PipelineHero({ projects, activeStage, setActiveStage }) {
 }
 
 /* ───────────────────── Kanban view ───────────────────── */
-function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapCardId }) {
+function ProjectsKanban({ projects, onMove, onDuplicate, onAdd, onOpen, dropTarget, assigning, snapCardId }) {
   const D = window.PROJ_DATA;
   const grouped = prUseMemo(() => {
     const m = {};
@@ -166,15 +166,21 @@ function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapC
   const dragHandlers = {
     onDragStart: (e, p) => {
       setDraggingId(p.id);
-      try { e.dataTransfer.setData("text/plain", p.id); e.dataTransfer.effectAllowed = "move"; } catch (_) {}
+      try {
+        e.dataTransfer.setData("text/plain", p.id);
+        e.dataTransfer.setData("application/x-dvp-project-id", p.id);
+        if (e.altKey) e.dataTransfer.setData("application/x-dvp-project-copy", "1");
+        e.dataTransfer.effectAllowed = "copyMove";
+      } catch (_) {}
     },
     onDragEnd: () => { setDraggingId(null); setOverStage(null); },
   };
 
   const onColDragOver = (e, stage) => {
     e.preventDefault();
+    const copying = e.altKey || e.dataTransfer.getData("application/x-dvp-project-copy") === "1";
     setOverStage(stage);
-    try { e.dataTransfer.dropEffect = "move"; } catch (_) {}
+    try { e.dataTransfer.dropEffect = copying ? "copy" : "move"; } catch (_) {}
   };
   const onColDragLeave = (e, stage) => {
     if (e.currentTarget.contains(e.relatedTarget)) return;
@@ -182,8 +188,12 @@ function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapC
   };
   const onColDrop = (e, stage) => {
     e.preventDefault();
-    const id = e.dataTransfer.getData("text/plain") || draggingId;
-    if (id) onMove(id, stage);
+    const id = e.dataTransfer.getData("application/x-dvp-project-id") || e.dataTransfer.getData("text/plain") || draggingId;
+    const copying = e.altKey || e.dataTransfer.getData("application/x-dvp-project-copy") === "1";
+    if (id) {
+      if (copying) onDuplicate?.(id, stage);
+      else onMove(id, stage);
+    }
     setOverStage(null);
     setDraggingId(null);
   };
@@ -205,7 +215,7 @@ function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapC
               <div className="top">
                 <span className={`lbl stg-${s.key}`}><span className="dot"></span>{s.label.toUpperCase()}</span>
                 <span className="cnt">{items.length}</span>
-                <button className="add" aria-label={`Add ${s.label}`}>+ ADD</button>
+                <button className="add" onClick={() => onAdd?.(s.key)} aria-label={`Add ${s.label}`}>+ ADD</button>
               </div>
               <div className="value-row">
                 <span className="v">{D.fmtMoney(value)}</span>
@@ -219,6 +229,7 @@ function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapC
                 items.map(p => (
                   <KanbanCard key={p.id} project={p}
                     onOpen={onOpen}
+                    onDuplicate={(id) => onDuplicate?.(id, p.stage)}
                     dragHandlers={dragHandlers}
                     isDragging={draggingId === p.id}
                     snapIn={snapCardId === p.id} />
@@ -232,8 +243,9 @@ function ProjectsKanban({ projects, onMove, onOpen, dropTarget, assigning, snapC
   );
 }
 
-function KanbanCard({ project, onOpen, dragHandlers, isDragging, snapIn }) {
+function KanbanCard({ project, onOpen, onDuplicate, dragHandlers, isDragging, snapIn }) {
   const D = window.PROJ_DATA;
+  const suppressClickRef = prUseRef(false);
   const pm = project.pmId ? D.PEOPLE[project.pmId] : null;
   const t = D.TYPE_INFO[project.type];
   const showProgress = project.stage === "active" || project.pctComplete != null;
@@ -241,14 +253,32 @@ function KanbanCard({ project, onOpen, dragHandlers, isDragging, snapIn }) {
     <article
       className={`kan-card t-${project.type} ${isDragging ? "dragging" : ""} ${snapIn ? "snap-in" : ""}`}
       draggable
-      onDragStart={(e) => dragHandlers.onDragStart(e, project)}
-      onDragEnd={(e) => dragHandlers.onDragEnd(e, project)}
-      onClick={() => onOpen(project.id)}
+      onDragStart={(e) => {
+        suppressClickRef.current = true;
+        dragHandlers.onDragStart(e, project);
+      }}
+      onDragEnd={(e) => {
+        dragHandlers.onDragEnd(e, project);
+        window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+      }}
+      onClick={() => {
+        if (!suppressClickRef.current) onOpen(project.id);
+      }}
       data-comment-anchor={`proj-card-${project.id}`}
     >
       <div className="top">
         <span className="code">{project.code}</span>
-        <StatusPill variant={t.tone}>{t.lbl}</StatusPill>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <StatusPill variant={t.tone}>{t.lbl}</StatusPill>
+          <button
+            className="kan-dup"
+            onClick={(e) => { e.stopPropagation(); onDuplicate?.(project.id); }}
+            title="Duplicate project"
+            aria-label={`Duplicate ${project.name}`}
+          >
+            <PrIcons.Plus size={10} />
+          </button>
+        </div>
       </div>
       <div className="nm">{project.name}</div>
       <div className="customer">{project.customer}</div>
@@ -275,6 +305,82 @@ function KanbanCard({ project, onOpen, dragHandlers, isDragging, snapIn }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function ProjectFormDrawer({ open, stage, onClose, onSave }) {
+  const D = window.PROJ_DATA;
+  const [form, setForm] = prUseState({
+    name: "", customer: "", city: "", state: "NJ", type: "paving", value: 100000, stage: stage || "lead",
+  });
+
+  prUseEffect(() => {
+    if (open) {
+      setForm({
+        name: "", customer: "", city: "", state: "NJ", type: "paving", value: 100000, stage: stage || "lead",
+      });
+    }
+  }, [open, stage]);
+
+  if (!open) return null;
+  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const canSave = form.name.trim() && form.customer.trim() && form.city.trim();
+
+  return (
+    <div className="proj-drawer add-form" role="dialog" aria-label="New project">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">NEW PROJECT</span>
+          <h2 className="nm">Create project</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><PrIcons.X size={14} /></button>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="add-form-section">
+          <div className="h">Project information</div>
+          <label className="add-form-field">
+            <span className="lbl">Project name<span className="req">*</span></span>
+            <input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Project name" />
+          </label>
+          <label className="add-form-field">
+            <span className="lbl">Customer<span className="req">*</span></span>
+            <input value={form.customer} onChange={(e) => setField("customer", e.target.value)} placeholder="Customer" />
+          </label>
+          <div className="add-form-grid-2">
+            <label className="add-form-field">
+              <span className="lbl">City<span className="req">*</span></span>
+              <input value={form.city} onChange={(e) => setField("city", e.target.value)} placeholder="City" />
+            </label>
+            <label className="add-form-field">
+              <span className="lbl">State</span>
+              <input value={form.state} onChange={(e) => setField("state", e.target.value.toUpperCase().slice(0, 2))} />
+            </label>
+          </div>
+          <div className="add-form-grid-2">
+            <label className="add-form-field">
+              <span className="lbl">Type</span>
+              <select value={form.type} onChange={(e) => setField("type", e.target.value)}>
+                {Object.entries(D.TYPE_INFO).map(([key, info]) => <option key={key} value={key}>{info.lbl}</option>)}
+              </select>
+            </label>
+            <label className="add-form-field">
+              <span className="lbl">Stage</span>
+              <select value={form.stage} onChange={(e) => setField("stage", e.target.value)}>
+                {D.STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className="add-form-field">
+            <span className="lbl">Value</span>
+            <input type="number" min="0" step="1000" value={form.value} onChange={(e) => setField("value", Number(e.target.value) || 0)} />
+          </label>
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSave} onClick={() => onSave(form)}>Create Project</button>
+      </footer>
+    </div>
   );
 }
 
@@ -584,4 +690,5 @@ window.ProjectsTable = ProjectsTable;
 window.ProjectsTimeline = ProjectsTimeline;
 window.ProjectsMap = ProjectsMap;
 window.ProjectDrawer = ProjectDrawer;
+window.ProjectFormDrawer = ProjectFormDrawer;
 window.PrIcons = PrIcons;

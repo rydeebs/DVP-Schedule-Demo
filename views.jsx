@@ -39,6 +39,7 @@ function WxGlyph({ kind = "sun", size = 12 }) {
 function CrewView({
   crews, scheduleByCrew, dropHandlers, dragHandlers,
   isDropTarget, snapJobId,
+  onOpenJob, onAddJob,
 }) {
   const D = window.DATA;
   const WEEK = D.WEEK_DAYS;
@@ -129,6 +130,7 @@ function CrewView({
                             draggable
                             onDragStart={(e) => dragHandlers?.onDragStart?.(e, job)}
                             onDragEnd={(e) => dragHandlers?.onDragEnd?.(e, job)}
+                            onClick={() => onOpenJob?.(job)}
                           >
                             <span className="code">{job.code}</span>
                             <span className="nm">{job.name.replace(/ — .*$/, "")}</span>
@@ -140,7 +142,7 @@ function CrewView({
                           </div>
                         );
                       })}
-                      <span className="wg-add">+ ADD</span>
+                      <button className="wg-add" onClick={() => onAddJob?.(c.id)}>+ ADD</button>
                     </div>
                   );
                 })}
@@ -156,7 +158,7 @@ function CrewView({
 /* ──────────────────────────────────────────────────────────────────
    DispatchView — Equipment / Trucking / Materials tabs + Map sidebar
    ────────────────────────────────────────────────────────────────── */
-function DispatchView({ jobs, crews, mapOnly, onToggleMap }) {
+function DispatchView({ jobs, crews, mapOnly, onToggleMap, onAddJob, onOpenJob, onNotify }) {
   const D = window.DATA;
   const [tab, setTab] = vUseState("equipment");
 
@@ -204,10 +206,10 @@ function DispatchView({ jobs, crews, mapOnly, onToggleMap }) {
             <Icons.Map size={12} />
             {mapOnly ? "LIST VIEW" : "MAP VIEW"}
           </button>
-          <button className="btn btn-secondary">
+          <button className="btn btn-secondary" onClick={onNotify}>
             <Icons.Bell size={12} /> Notify Drivers · {tabs[1].count}
           </button>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => onAddJob?.()}>
             <Icons.Plus size={12} /> Add Job
           </button>
         </div>
@@ -216,7 +218,15 @@ function DispatchView({ jobs, crews, mapOnly, onToggleMap }) {
           <DispatchEmpty />
         ) : (
           todays.map(j => (
-            <DispatchJob key={j.id} job={j} crews={crews} tab={tab} conflicts={conflicts} />
+            <DispatchJob
+              key={j.id}
+              job={j}
+              crews={crews}
+              tab={tab}
+              conflicts={conflicts}
+              onOpenJob={onOpenJob}
+              onAddJob={onAddJob}
+            />
           ))
         )}
       </div>
@@ -314,7 +324,7 @@ function DispatchEmpty() {
   );
 }
 
-function DispatchJob({ job, crews, tab, conflicts }) {
+function DispatchJob({ job, crews, tab, conflicts, onOpenJob, onAddJob }) {
   const D = window.DATA;
   const crew = crews.find(c => c.id === job.crew);
   const d = D.DISPATCH[job.id];
@@ -339,7 +349,7 @@ function DispatchJob({ job, crews, tab, conflicts }) {
         <span className="meta" style={{ color: "var(--ink-1)" }}>
           {crew?.name.replace(/^Crew \d+ — /, "") || "—"}
         </span>
-        <button className="icon-btn" aria-label="Open job">
+        <button className="icon-btn" onClick={() => onOpenJob?.(job)} aria-label="Open job">
           <Icons.ChevR size={14} />
         </button>
       </header>
@@ -364,8 +374,8 @@ function DispatchJob({ job, crews, tab, conflicts }) {
       <footer className="dj-foot">
         <span>{tab.toUpperCase()} · {rows.length} ASSIGNED</span>
         <span className="spc"></span>
-        <button className="add"><Icons.Plus size={10} style={{ verticalAlign: -1, marginRight: 2 }} /> ADD {tab.toUpperCase().replace(/S$/,"")}</button>
-        <button className="add">DUPLICATE FROM J-{job.code}</button>
+        <button className="add" onClick={() => onOpenJob?.(job)}><Icons.Plus size={10} style={{ verticalAlign: -1, marginRight: 2 }} /> ADD {tab.toUpperCase().replace(/S$/,"")}</button>
+        <button className="add" onClick={() => onAddJob?.(job.crew)}>DUPLICATE FROM {job.code}</button>
       </footer>
     </article>
   );

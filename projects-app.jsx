@@ -25,6 +25,7 @@ function ProjectsApp() {
   const [activeStage, setActiveStage] = prAUseState(null);
   const [query, setQuery] = prAUseState("");
   const [openId, setOpenId] = prAUseState(null);
+  const [addStage, setAddStage] = prAUseState(null);
   const [assigningStage, setAssigningStage] = prAUseState(null);
   const [snapCardId, setSnapCardId] = prAUseState(null);
   const [toast, setToast] = prAUseState(null);
@@ -48,11 +49,18 @@ function ProjectsApp() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && toast) {
         e.preventDefault(); handleUndo();
       }
-      if (e.key === "Escape" && openId) { setOpenId(null); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.querySelector(".proj-search input")?.focus();
+      }
+      if (e.key === "Escape") {
+        if (openId) setOpenId(null);
+        if (addStage !== null) setAddStage(null);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toast, handleUndo, openId]);
+  }, [toast, handleUndo, openId, addStage]);
 
   // Filtered projects
   const filtered = prAUseMemo(() => {
@@ -84,6 +92,70 @@ function ProjectsApp() {
     );
   }, [projects, showToast]);
 
+  const duplicateProject = prAUseCallback((id, toStage) => {
+    const proj = projects.find(p => p.id === id);
+    if (!proj) return;
+    const newId = `p-copy-${Date.now()}`;
+    const copy = {
+      ...proj,
+      id: newId,
+      code: `${proj.code}-D`,
+      name: `${proj.name} Copy`,
+      stage: toStage || proj.stage,
+      createdAt: "2026-05-26",
+      pctComplete: toStage === "active" ? proj.pctComplete : undefined,
+      late: false,
+    };
+    setProjects(prev => [copy, ...prev]);
+    setAssigningStage(copy.stage);
+    setSnapCardId(newId);
+    setTimeout(() => setAssigningStage(null), 360);
+    setTimeout(() => setSnapCardId(null), 240);
+    const stageLabel = D.STAGES.find(s => s.key === copy.stage)?.label;
+    showToast(
+      `<span class="num">${copy.code}</span> duplicated to <strong>${stageLabel}</strong>`,
+      () => {
+        setProjects(prev => prev.filter(p => p.id !== newId));
+        if (openId === newId) setOpenId(null);
+      }
+    );
+  }, [projects, showToast, D.STAGES, openId]);
+
+  const createProject = prAUseCallback((form) => {
+    const newId = `p-new-${Date.now()}`;
+    const count = projects.length + 14100;
+    const project = {
+      id: newId,
+      code: `PROJ${count}`,
+      customer: form.customer.trim(),
+      name: form.name.trim(),
+      city: form.city.trim(),
+      state: (form.state || "NJ").trim().toUpperCase(),
+      type: form.type,
+      stage: form.stage,
+      value: Number(form.value) || 0,
+      srId: "sr1",
+      pmId: null,
+      status: form.stage === "lead" ? "New lead" : "Needs review",
+      createdAt: "2026-05-26",
+      startAt: null,
+      endAt: null,
+      x: 62,
+      y: 46,
+      contract: false,
+    };
+    setProjects(prev => [project, ...prev]);
+    setAddStage(null);
+    setOpenId(newId);
+    showToast(
+      `<span class="num">${project.code}</span> · <strong>${project.customer}</strong> created`,
+      () => {
+        setProjects(prev => prev.filter(p => p.id !== newId));
+        setOpenId(null);
+      }
+    );
+  }, [projects.length, showToast]);
+
   const openProject = openId ? projects.find(p => p.id === openId) : null;
 
   const views = [
@@ -100,6 +172,7 @@ function ProjectsApp() {
         onToggleSidebar={() => setTweak("sidebarCollapsed", !t.sidebarCollapsed)}
         dark={t.dark}
         onToggleDark={() => setTweak("dark", !t.dark)}
+        onCommand={() => document.querySelector(".proj-search input")?.focus()}
       />
       <ProjSidebar collapsed={t.sidebarCollapsed} />
 
@@ -121,7 +194,7 @@ function ProjectsApp() {
           <button className="btn btn-secondary" style={{ height: 32 }}>
             <PrIcons.Download size={12} /> Export
           </button>
-          <button className="btn btn-primary" style={{ height: 32 }}>
+          <button className="btn btn-primary" style={{ height: 32 }} onClick={() => setAddStage(activeStage || "lead")}>
             <PrIcons.Plus size={14} /> New project
           </button>
         </div>
@@ -168,6 +241,8 @@ function ProjectsApp() {
             <ProjectsKanban
               projects={filtered}
               onMove={moveProject}
+              onDuplicate={duplicateProject}
+              onAdd={(stage) => setAddStage(stage)}
               onOpen={setOpenId}
               assigning={assigningStage}
               snapCardId={snapCardId}
@@ -180,6 +255,12 @@ function ProjectsApp() {
       </main>
 
       {openProject && <ProjectDrawer project={openProject} onClose={() => setOpenId(null)} />}
+      <ProjectFormDrawer
+        open={addStage !== null}
+        stage={addStage || "lead"}
+        onClose={() => setAddStage(null)}
+        onSave={createProject}
+      />
 
       <UndoToast toast={toast} onUndo={handleUndo} />
 

@@ -19,6 +19,7 @@ const Icons = {
   Search:      (p) => <Ico {...p} d={["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z","M21 21l-4.3-4.3"]} />,
   Bell:        (p) => <Ico {...p} d={["M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8","M10 21a2 2 0 0 0 4 0"]} />,
   Plus:        (p) => <Ico {...p} d={["M12 5v14","M5 12h14"]} />,
+  X:           (p) => <Ico {...p} d={["M6 6l12 12","M18 6L6 18"]} />,
   Calendar:    (p) => <Ico {...p} d={["M3 9h18","M3 5h18v16H3z","M8 3v4","M16 3v4"]} />,
   Truck:       (p) => <Ico {...p} d={["M3 7h11v9H3z","M14 10h4l3 3v3h-7","M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z","M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"]} />,
   Wrench:      (p) => <Ico {...p} d="M14.7 6.3a4 4 0 0 0 5 5L18 13l-7 7-3-3 7-7 1.7-3.7Z" />,
@@ -81,9 +82,11 @@ function EquipChip({ kind = "equip", children }) {
 /* ───────────────────── Job card ───────────────────── */
 function JobCard({
   job, dragHandlers, isDragging, snapIn,
+  onOpen,
   variant = "lane", // 'pool' | 'lane'
 }) {
   const D = window.DATA;
+  const suppressClickRef = useRef(false);
   const t = D.JOB_TYPES[job.type];
   const qtyStr =
     job.tons ? `${job.tons} tn` :
@@ -95,8 +98,17 @@ function JobCard({
     <article
       className={`job job-type-${job.type} ${isDragging ? "dragging" : ""} ${snapIn ? "snap-in" : ""}`}
       draggable
-      onDragStart={(e) => dragHandlers?.onDragStart?.(e, job)}
-      onDragEnd={(e) => dragHandlers?.onDragEnd?.(e, job)}
+      onDragStart={(e) => {
+        suppressClickRef.current = true;
+        dragHandlers?.onDragStart?.(e, job);
+      }}
+      onDragEnd={(e) => {
+        dragHandlers?.onDragEnd?.(e, job);
+        window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+      }}
+      onClick={() => {
+        if (!suppressClickRef.current) onOpen?.(job);
+      }}
       data-job-id={job.id}
     >
       <div className="job-top">
