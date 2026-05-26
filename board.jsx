@@ -95,7 +95,10 @@ function Sidebar({ collapsed }) {
 }
 
 /* ─────────────────────────── Subheader ─────────────────────────── */
-function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo, onAddJob }) {
+function Subheader({
+  view, onView, date, onDate, totals, canUndo, onUndo, onAddJob,
+  filters, filterCounts, onOpenFilters,
+}) {
   const d = date;
   const dateLabel = d.toLocaleDateString("en-US", {
     month: "short",
@@ -118,8 +121,16 @@ function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo, onAddJ
         ))}
       </div>
       <div className="spacer"></div>
-      <button className="filter-chip"><span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL DIVISIONS</button>
-      <button className="filter-chip"><Icons.Filter size={12} /> FILTERS · 2</button>
+      <button
+        className={`filter-chip ${filters?.division !== "all" ? "active" : ""}`}
+        onClick={onOpenFilters}
+      >
+        <span className="dot" style={{ background: "var(--status-ok)" }}></span>
+        {filters?.division === "all" ? "ALL DIVISIONS" : filters.division.toUpperCase()}
+      </button>
+      <button className={`filter-chip ${filterCounts?.active ? "active" : ""}`} onClick={onOpenFilters}>
+        <Icons.Filter size={12} /> FILTERS · {filterCounts?.active || 0}
+      </button>
       {view === "CREW" ? (
         <button
           className="btn btn-ghost"
@@ -134,6 +145,83 @@ function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo, onAddJ
       )}
       <button className="btn btn-secondary" onClick={() => onAddJob?.()}><Icons.Plus size={14} /> Add Job</button>
       <button className="btn btn-primary">Notify Crews · {totals.notifyCount}</button>
+    </div>
+  );
+}
+
+function FilterPopover({ open, filters, counts, divisions, onClose, onChange, onReset }) {
+  if (!open) return null;
+  const statusOptions = [
+    { key: "current", label: "Current", count: counts.current },
+    { key: "filled", label: "Filled", count: counts.filled },
+    { key: "unassigned", label: "Not assigned", count: counts.unassigned },
+  ];
+  const priorityOptions = [
+    { key: "all", label: "All priorities" },
+    { key: "high", label: "High" },
+    { key: "med", label: "Medium" },
+    { key: "low", label: "Low" },
+  ];
+
+  return (
+    <div className="filter-popover" role="dialog" aria-label="Crew board filters">
+      <div className="fp-head">
+        <span>Board filters</span>
+        <button className="icon-btn" onClick={onClose} aria-label="Close filters"><Icons.X size={13} /></button>
+      </div>
+      <div className="fp-section">
+        <span className="fp-label">Job status</span>
+        <div className="fp-grid">
+          {statusOptions.map(opt => (
+            <button
+              key={opt.key}
+              className={`fp-option ${filters.status === opt.key ? "active" : ""}`}
+              onClick={() => onChange({ status: opt.key })}
+            >
+              <span>{opt.label}</span>
+              <strong>{opt.count}</strong>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="fp-section">
+        <span className="fp-label">Priority</span>
+        <div className="fp-grid">
+          {priorityOptions.map(opt => (
+            <button
+              key={opt.key}
+              className={`fp-option ${filters.priority === opt.key ? "active" : ""}`}
+              onClick={() => onChange({ priority: opt.key })}
+            >
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="fp-section">
+        <span className="fp-label">Division</span>
+        <div className="fp-grid">
+          <button
+            className={`fp-option ${filters.division === "all" ? "active" : ""}`}
+            onClick={() => onChange({ division: "all" })}
+          >
+            <span>All divisions</span>
+          </button>
+          {divisions.map(div => (
+            <button
+              key={div}
+              className={`fp-option ${filters.division === div ? "active" : ""}`}
+              onClick={() => onChange({ division: div })}
+            >
+              <span>{div}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="fp-foot">
+        <button className="btn btn-secondary" onClick={onReset}>Reset</button>
+        <button className="btn btn-primary" onClick={onClose}>Apply</button>
+      </div>
     </div>
   );
 }
@@ -179,7 +267,10 @@ function MetricsRail({ totals }) {
 }
 
 /* ─────────────────────────── Unassigned pool ─────────────────────────── */
-function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, setQuery, onOpenJob, isDropTarget }) {
+function UnassignedPool({
+  jobs, allCount, filters, crews, dragHandlers, dropHandlers,
+  draggingId, query, setQuery, onOpenJob, isDropTarget, isAssigning, snapJobId,
+}) {
   const filtered = jobs.filter(j =>
     !query ||
     j.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -189,17 +280,26 @@ function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, s
   const high = filtered.filter(j => j.priority === "high");
   const med  = filtered.filter(j => j.priority === "med");
   const low  = filtered.filter(j => j.priority === "low");
+  const statusLabel = (job) => {
+    const crew = job.crew ? crews.find(c => c.id === job.crew) : null;
+    return crew ? `Filled · ${crew.name}` : "Not assigned";
+  };
 
   return (
     <aside
-      className={`pool ${isDropTarget ? "drop-target" : ""}`}
+      className={`pool ${isDropTarget ? "drop-target" : ""} ${isAssigning ? "assigning" : ""}`}
       onDragOver={(e) => dropHandlers?.onDragOver?.(e, null)}
       onDragLeave={(e) => dropHandlers?.onDragLeave?.(e, null)}
       onDrop={(e) => dropHandlers?.onDrop?.(e, null)}
     >
       <div className="pool-hdr">
-        <span className="h">Unassigned · Tue 05/26</span>
-        <span className="c">{filtered.length} of {jobs.length}</span>
+        <span className="h">All jobs · Tue 05/26</span>
+        <span className="c">{filtered.length} of {allCount}</span>
+      </div>
+      <div className="pool-tabs">
+        <span className={filters.status === "current" ? "active" : ""}>CURRENT</span>
+        <span className={filters.status === "filled" ? "active" : ""}>FILLED</span>
+        <span className={filters.status === "unassigned" ? "active" : ""}>NOT ASSIGNED</span>
       </div>
       <div className="pool-search">
         <Icons.Search size={12} />
@@ -221,6 +321,8 @@ function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, s
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                snapIn={snapJobId === j.id}
+                statusLabel={statusLabel(j)}
                 onOpen={onOpenJob}
               />
             ))}
@@ -236,6 +338,8 @@ function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, s
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                snapIn={snapJobId === j.id}
+                statusLabel={statusLabel(j)}
                 onOpen={onOpenJob}
               />
             ))}
@@ -251,6 +355,8 @@ function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, s
               <JobCard key={j.id} job={j} variant="pool"
                 dragHandlers={dragHandlers}
                 isDragging={draggingId === j.id}
+                snapIn={snapJobId === j.id}
+                statusLabel={statusLabel(j)}
                 onOpen={onOpenJob}
               />
             ))}
@@ -715,5 +821,5 @@ function UndoToast({ toast, onUndo }) {
 Object.assign(window, {
   Header, Sidebar, Subheader, MetricsRail,
   UnassignedPool, CrewLane, AddCrewLane, BenchBar, UndoToast,
-  CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer,
+  FilterPopover, CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer,
 });

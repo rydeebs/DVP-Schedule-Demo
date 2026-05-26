@@ -29,6 +29,10 @@ function App() {
   const [date, setDate] = aUseState(new Date(2026, 4, 26)); // May 26 2026
   const [view, setView] = aUseState("BOARD");
   const [query, setQuery] = aUseState("");
+  const [jobStatusFilter, setJobStatusFilter] = aUseState("current");
+  const [priorityFilter, setPriorityFilter] = aUseState("all");
+  const [divisionFilter, setDivisionFilter] = aUseState("all");
+  const [filtersOpen, setFiltersOpen] = aUseState(false);
   const [draggingId, setDraggingId] = aUseState(null);
   const [dropTargetId, setDropTargetId] = aUseState(null);
   const [assigningLaneId, setAssigningLaneId] = aUseState(null);
@@ -41,6 +45,11 @@ function App() {
   const [commandQuery, setCommandQuery] = aUseState("");
   const toastTimerRef = aUseRef(null);
   const undoStackRef = aUseRef([]);
+  const jobsRef = aUseRef(jobs);
+
+  aUseEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
 
   // Map / Dispatch local UI
   const [mapOnly, setMapOnly] = aUseState(false);
@@ -55,6 +64,29 @@ function App() {
 
   const unassigned = aUseMemo(() => jobs.filter(j => !j.crew), [jobs]);
   const selectedJob = aUseMemo(() => jobs.find(j => j.id === selectedJobId) || null, [jobs, selectedJobId]);
+  const filterState = aUseMemo(() => ({
+    status: jobStatusFilter,
+    priority: priorityFilter,
+    division: divisionFilter,
+  }), [jobStatusFilter, priorityFilter, divisionFilter]);
+  const filterCounts = aUseMemo(() => ({
+    current: jobs.length,
+    filled: jobs.filter(j => !!j.crew).length,
+    unassigned: jobs.filter(j => !j.crew).length,
+    active: [jobStatusFilter !== "current", priorityFilter !== "all", divisionFilter !== "all"].filter(Boolean).length,
+  }), [jobs, jobStatusFilter, priorityFilter, divisionFilter]);
+  const visiblePoolJobs = aUseMemo(() => {
+    return jobs.filter(j => {
+      if (jobStatusFilter === "filled" && !j.crew) return false;
+      if (jobStatusFilter === "unassigned" && j.crew) return false;
+      if (priorityFilter !== "all" && j.priority !== priorityFilter) return false;
+      if (divisionFilter !== "all") {
+        const crew = j.crew ? crews.find(c => c.id === j.crew) : null;
+        if (!crew || crew.division.toLowerCase() !== divisionFilter) return false;
+      }
+      return true;
+    });
+  }, [jobs, crews, jobStatusFilter, priorityFilter, divisionFilter]);
 
   const totals = aUseMemo(() => ({
     scheduled: jobs.filter(j => j.crew).length,
@@ -151,26 +183,35 @@ function App() {
   };
 
   const assignJob = aUseCallback((jobId, crewId) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return;
     const normalizedCrewId = crewId || null;
-    const prevCrew = job.crew;
-    if (prevCrew === normalizedCrewId) return;
+    const movedJob = jobsRef.current.find(j => j.id === jobId);
+    if (!movedJob || movedJob.crew === normalizedCrewId) return;
+    const prevCrew = movedJob.crew || null;
 
-    setJobs((prev) => prev.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j));
-    // Trigger lock-in animation
-    setAssigningLaneId(normalizedCrewId);
+    jobsRef.current = jobsRef.current.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j);
+    setJobs((prev) => {
+      const job = prev.find(j => j.id === jobId);
+      if (!job || job.crew === normalizedCrewId) return prev;
+      return prev.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j);
+    });
+
+    setAssigningLaneId(normalizedCrewId || "unassigned");
     setSnapJobId(jobId);
-    setTimeout(() => setAssigningLaneId(null), 360);
-    setTimeout(() => setSnapJobId(null), 240);
+    setDropTargetId(null);
+    window.setTimeout(() => setAssigningLaneId(null), 360);
+    window.setTimeout(() => setSnapJobId(null), 240);
 
     const crewName = normalizedCrewId ? (crews.find(c => c.id === normalizedCrewId)?.name || "crew") : "Unassigned";
-    const prevName = prevCrew ? (crews.find(c => c.id === prevCrew)?.name || "crew") : "Unassigned";
-    const msg = `<span class="num">${job.code}</span> · ${job.name.length > 36 ? job.name.slice(0,36)+"…" : job.name} → <strong>${crewName}</strong>`;
+    const msg = `<span class="num">${movedJob.code}</span> · ${movedJob.name.length > 36 ? movedJob.name.slice(0,36)+"..." : movedJob.name} -> <strong>${crewName}</strong>`;
     showToast(msg, () => {
+      jobsRef.current = jobsRef.current.map(j => j.id === jobId ? { ...j, crew: prevCrew } : j);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, crew: prevCrew } : j));
+      setAssigningLaneId(prevCrew || "unassigned");
+      setSnapJobId(jobId);
+      window.setTimeout(() => setAssigningLaneId(null), 360);
+      window.setTimeout(() => setSnapJobId(null), 240);
     });
-  }, [jobs, crews, showToast]);
+  }, [crews, showToast]);
 
   const openAddJob = aUseCallback((crewId = null) => {
     setAddJobCrewId(crewId || "");
@@ -294,13 +335,35 @@ function App() {
           canUndo={!!toast?.undoFn}
           onUndo={handleUndo}
           onAddJob={openAddJob}
+          filters={filterState}
+          filterCounts={filterCounts}
+          onOpenFilters={() => setFiltersOpen(v => !v)}
+        />
+        <FilterPopover
+          open={filtersOpen}
+          filters={filterState}
+          counts={filterCounts}
+          divisions={[...new Set(crews.map(c => c.division.toLowerCase()))]}
+          onClose={() => setFiltersOpen(false)}
+          onChange={(patch) => {
+            if (patch.status !== undefined) setJobStatusFilter(patch.status);
+            if (patch.priority !== undefined) setPriorityFilter(patch.priority);
+            if (patch.division !== undefined) setDivisionFilter(patch.division);
+          }}
+          onReset={() => {
+            setJobStatusFilter("current");
+            setPriorityFilter("all");
+            setDivisionFilter("all");
+          }}
         />
         {t.showHeroRail && view === "BOARD" && <MetricsRail totals={totals} />}
 
         {view === "BOARD" && (
           <div className="board" style={t.showBench ? null : { gridTemplateRows: "1fr" }}>
             <UnassignedPool
-              jobs={unassigned}
+              jobs={visiblePoolJobs}
+              allCount={jobs.length}
+              filters={filterState}
               dragHandlers={dragHandlers}
               dropHandlers={dropHandlers}
               draggingId={draggingId}
@@ -308,6 +371,9 @@ function App() {
               setQuery={setQuery}
               onOpenJob={(job) => setSelectedJobId(job.id)}
               isDropTarget={dropTargetId === "unassigned"}
+              crews={crews}
+              isAssigning={assigningLaneId === "unassigned"}
+              snapJobId={snapJobId}
             />
             <div className="lanes">
               {crews.map(c => (

@@ -134,6 +134,7 @@ function EquipChip({ kind = "equip", children }) {
 function JobCard({
   job, dragHandlers, isDragging, snapIn,
   onOpen,
+  statusLabel,
   variant = "lane", // 'pool' | 'lane'
 }) {
   const D = window.DATA;
@@ -191,6 +192,11 @@ function JobCard({
       {variant === "pool" && job.needs && (
         <div className="job-meta" style={{ marginTop: 2 }}>
           <Icons.Users size={10} /> <span>{job.needs}</span>
+        </div>
+      )}
+      {variant === "pool" && statusLabel && (
+        <div className="job-meta" style={{ marginTop: 2 }}>
+          <Icons.Users size={10} /> <span>{statusLabel}</span>
         </div>
       )}
     </article>
