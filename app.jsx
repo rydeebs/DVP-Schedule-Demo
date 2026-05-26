@@ -44,6 +44,7 @@ function App() {
   const [selectedWorkerId, setSelectedWorkerId] = aUseState(null);
   const [addJobCrewId, setAddJobCrewId] = aUseState(null);
   const [addBenchOpen, setAddBenchOpen] = aUseState(false);
+  const [notifyOpen, setNotifyOpen] = aUseState(false);
   const [commandOpen, setCommandOpen] = aUseState(false);
   const [commandQuery, setCommandQuery] = aUseState("");
   const toastTimerRef = aUseRef(null);
@@ -108,6 +109,16 @@ function App() {
     unassigned: jobs.filter(j => !j.crew).length,
     active: [jobStatusFilter !== "current", priorityFilter !== "all", divisionFilter !== "all"].filter(Boolean).length,
   }), [jobs, jobStatusFilter, priorityFilter, divisionFilter]);
+  const deptLabels = {
+    regional: "All crews",
+    excavation: "Excavation crews",
+    paving: "Paving crews",
+    concrete: "Concrete crews",
+    milling: "Milling crews",
+    field: "Field Ops crews",
+    striping: "Striping crews",
+    subcontractor: "Subcontractor view",
+  };
   const visiblePoolJobs = aUseMemo(() => {
     return jobs.filter(j => {
       if (jobStatusFilter === "filled" && !j.crew) return false;
@@ -138,6 +149,13 @@ function App() {
     formsOverdue: 4,
     notifyCount: crews.filter(c => (jobsByCrew[c.id] || []).length > 0).length,
   }), [jobs, crews, jobsByCrew, unassigned, bench, D]);
+  const escapeHtml = aUseCallback((value) => String(value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  }[ch])), []);
 
   // Toast helpers
   const showToast = aUseCallback((msg, undoFn) => {
@@ -171,6 +189,7 @@ function App() {
         setSelectedJobId(null);
         setAddJobCrewId(null);
         setAddBenchOpen(false);
+        setNotifyOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -367,6 +386,59 @@ function App() {
     });
   }, [showToast]);
 
+  const sendCrewNotification = aUseCallback((form) => {
+    const visibleCrews = crewDepartmentView === "regional"
+      ? crews
+      : crews.filter((c) => {
+        const div = (c.division || "").toLowerCase();
+        if (crewDepartmentView === "excavation") return div.includes("excav");
+        if (crewDepartmentView === "paving") return div.includes("paving");
+        if (crewDepartmentView === "concrete") return div.includes("concrete");
+        if (crewDepartmentView === "milling") return div.includes("milling");
+        if (crewDepartmentView === "field") return div.includes("field ops");
+        if (crewDepartmentView === "striping") return div.includes("striping");
+        if (crewDepartmentView === "subcontractor") return false;
+        return true;
+      });
+    const activeCrews = crews.filter((c) => (jobsByCrew[c.id] || []).length > 0);
+    const selectedCrew = crews.find((c) => c.id === form.crewId) || null;
+    const recipients = form.audience === "all"
+      ? crews
+      : form.audience === "active"
+      ? activeCrews
+      : form.audience === "crew"
+      ? (selectedCrew ? [selectedCrew] : [])
+      : visibleCrews;
+    const targetLabel = form.audience === "all"
+      ? "all crews"
+      : form.audience === "active"
+      ? "active crews"
+      : form.audience === "crew"
+      ? (selectedCrew?.name || "selected crew")
+      : (crewDepartmentView === "regional" ? "visible crews" : (deptLabels[crewDepartmentView] || "visible crews"));
+
+    if (!recipients.length) {
+      showToast(`No crews matched this notification target`);
+      return;
+    }
+
+    const typeLabel = {
+      "schedule-update": "Schedule update",
+      "start-time-change": "Start time change",
+      "dispatch-request": "Dispatch request",
+      "safety-alert": "Safety alert",
+      "weather-delay": "Weather delay",
+      custom: "Custom message",
+    }[form.type] || "Notification";
+    const message = form.message.trim();
+    const preview = message ? escapeHtml(message.length > 92 ? `${message.slice(0, 92)}…` : message) : "No message text";
+
+    showToast(
+      `<strong>${recipients.length}</strong> crew${recipients.length === 1 ? "" : "s"} queued · ${typeLabel} · <strong>${escapeHtml(targetLabel)}</strong><br><span class="num">${preview}</span>`
+    );
+    setNotifyOpen(false);
+  }, [crewDepartmentView, crews, deptLabels, escapeHtml, jobsByCrew, showToast]);
+
   const onDateNudge = (dir) => {
     if (dir === 0) {
       setDate(new Date(2026, 4, 26));
@@ -411,6 +483,7 @@ function App() {
           canUndo={!!toast?.undoFn}
           onUndo={handleUndo}
           onAddJob={openAddJob}
+          onNotify={() => setNotifyOpen(v => !v)}
           filters={filterState}
           filterCounts={filterCounts}
           onOpenFilters={() => setFiltersOpen(v => !v)}
@@ -559,6 +632,14 @@ function App() {
         bench={bench}
         jobs={jobs}
         onClose={() => setSelectedWorkerId(null)}
+      />
+      <NotifyCrewsDrawer
+        open={notifyOpen}
+        crews={crews}
+        jobs={jobs}
+        departmentView={crewDepartmentView}
+        onClose={() => setNotifyOpen(false)}
+        onSend={sendCrewNotification}
       />
 
       {/* Tweaks panel */}

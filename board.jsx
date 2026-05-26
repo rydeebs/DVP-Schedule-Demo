@@ -96,7 +96,7 @@ function Sidebar({ collapsed }) {
 
 /* ─────────────────────────── Subheader ─────────────────────────── */
 function Subheader({
-  view, onView, date, onDate, totals, canUndo, onUndo, onAddJob,
+  view, onView, date, onDate, totals, canUndo, onUndo, onAddJob, onNotify,
   filters, filterCounts, onOpenFilters,
 }) {
   const d = date;
@@ -144,7 +144,9 @@ function Subheader({
         <button className="btn btn-ghost"><Icons.Undo size={14} /> History</button>
       )}
       <button className="btn btn-secondary" onClick={() => onAddJob?.()}><Icons.Plus size={14} /> Add Job</button>
-      <button className="btn btn-primary">Notify Crews · {totals.notifyCount}</button>
+      <button className="btn btn-primary" onClick={onNotify}>
+        <Icons.Bell size={14} /> Notify Crews · {totals.notifyCount}
+      </button>
     </div>
   );
 }
@@ -616,6 +618,185 @@ function JobFormDrawer({ open, crews, initialCrewId, onClose, onSave }) {
   );
 }
 
+function NotifyCrewsDrawer({ open, crews, jobs, departmentView, onClose, onSend }) {
+  const templates = [
+    {
+      key: "schedule-update",
+      label: "Schedule update",
+      message: "Schedule update: please review the latest plan and confirm start times.",
+    },
+    {
+      key: "start-time-change",
+      label: "Start time change",
+      message: "Start time change: check the updated schedule before reporting.",
+    },
+    {
+      key: "dispatch-request",
+      label: "Dispatch request",
+      message: "Dispatch request: confirm crew availability and equipment readiness.",
+    },
+    {
+      key: "safety-alert",
+      label: "Safety alert",
+      message: "Safety alert: review site conditions and confirm PPE before mobilizing.",
+    },
+    {
+      key: "weather-delay",
+      label: "Weather delay",
+      message: "Weather delay: standby for a schedule update and check in with dispatch.",
+    },
+    { key: "custom", label: "Custom", message: "" },
+  ];
+  const deptLabelMap = {
+    regional: "All crews",
+    excavation: "Excavation crews",
+    paving: "Paving crews",
+    concrete: "Concrete crews",
+    milling: "Milling crews",
+    field: "Field Ops crews",
+    striping: "Striping crews",
+    subcontractor: "Subcontractor crews",
+  };
+  const [form, setForm] = bUseState({
+    type: "schedule-update",
+    audience: "visible",
+    crewId: "",
+    message: templates[0].message,
+  });
+
+  bUseEffect(() => {
+    if (!open) return;
+    setForm({
+      type: "schedule-update",
+      audience: "visible",
+      crewId: "",
+      message: templates[0].message,
+    });
+  }, [open]);
+
+  if (!open) return null;
+
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const visibleCrews = departmentView === "regional"
+    ? crews
+    : crews.filter((c) => {
+      const div = (c.division || "").toLowerCase();
+      if (departmentView === "excavation") return div.includes("excav");
+      if (departmentView === "paving") return div.includes("paving");
+      if (departmentView === "concrete") return div.includes("concrete");
+      if (departmentView === "milling") return div.includes("milling");
+      if (departmentView === "field") return div.includes("field ops");
+      if (departmentView === "striping") return div.includes("striping");
+      if (departmentView === "subcontractor") return false;
+      return true;
+    });
+  const activeCrews = crews.filter((c) => (jobs.filter((j) => j.crew === c.id).length > 0));
+  const selectedCrew = crews.find((c) => c.id === form.crewId) || null;
+  const audienceLabel = {
+    all: "All crews",
+    visible: departmentView === "regional" ? "Visible crews" : (deptLabelMap[departmentView] || "Visible crews"),
+    active: "Active crews",
+    crew: selectedCrew?.name || "Selected crew",
+  }[form.audience] || "Recipients";
+  const audienceCount = {
+    all: crews.length,
+    visible: visibleCrews.length,
+    active: activeCrews.length,
+    crew: selectedCrew ? 1 : 0,
+  }[form.audience] || 0;
+  const templateLabel = {
+    "schedule-update": "Schedule update",
+    "start-time-change": "Start time change",
+    "dispatch-request": "Dispatch request",
+    "safety-alert": "Safety alert",
+    "weather-delay": "Weather delay",
+    custom: "Custom message",
+  }[form.type];
+  const canSend = form.message.trim() && audienceCount > 0;
+
+  return (
+    <div className="proj-drawer add-form notify-drawer" role="dialog" aria-label="Notify crews">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">NOTIFY</span>
+          <h2 className="nm">Send crew message</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="add-form-section">
+          <div className="h">Message type</div>
+          <div className="notify-pills">
+            {templates.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`notify-pill ${form.type === opt.key ? "active" : ""}`}
+                onClick={() => {
+                  setField("type", opt.key);
+                  setField("message", opt.message);
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="add-form-section">
+          <div className="h">Recipients</div>
+          <div className="add-form-grid-2">
+            <FormField label="Audience">
+              <select value={form.audience} onChange={(e) => setField("audience", e.target.value)}>
+                <option value="visible">Visible crews</option>
+                <option value="active">Active crews</option>
+                <option value="all">All crews</option>
+                <option value="crew">Specific crew</option>
+              </select>
+            </FormField>
+            <FormField label="Preview">
+              <input value={`${audienceLabel} · ${audienceCount} crew${audienceCount === 1 ? "" : "s"}`} readOnly />
+            </FormField>
+          </div>
+          {form.audience === "crew" && (
+            <FormField label="Crew">
+              <select value={form.crewId} onChange={(e) => setField("crewId", e.target.value)}>
+                <option value="">Choose crew</option>
+                {crews.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </FormField>
+          )}
+        </div>
+
+        <div className="add-form-section">
+          <div className="h">Message</div>
+          <FormField label="Text">
+            <textarea
+              value={form.message}
+              onChange={(e) => setField("message", e.target.value)}
+              placeholder="Type the notification message"
+            />
+          </FormField>
+        </div>
+
+        <div className="notify-summary">
+          <span className="lbl">Dispatch summary</span>
+          <strong>{templateLabel}</strong>
+          <span>{audienceLabel} · {audienceCount} recipient{audienceCount === 1 ? "" : "s"}</span>
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={!canSend} onClick={() => onSend(form)}>
+          Send Notification
+        </button>
+      </footer>
+    </div>
+  );
+}
+
 function FormField({ label, required, children }) {
   return (
     <label className="add-form-field">
@@ -927,5 +1108,5 @@ function UndoToast({ toast, onUndo }) {
 Object.assign(window, {
   Header, Sidebar, Subheader, MetricsRail,
   UnassignedPool, CrewLane, AddCrewLane, BenchBar, UndoToast,
-  FilterPopover, CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer,
+  FilterPopover, CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer, NotifyCrewsDrawer,
 });
