@@ -163,13 +163,15 @@ function ProjectsKanban({ projects, onMove, onDuplicate, onAdd, onOpen, dropTarg
   const [draggingId, setDraggingId] = prUseState(null);
   const [overStage, setOverStage] = prUseState(null);
 
+  const isCopyDrag = (e) => !!(e.altKey || e.ctrlKey || e.metaKey);
+
   const dragHandlers = {
     onDragStart: (e, p) => {
       setDraggingId(p.id);
       try {
         e.dataTransfer.setData("text/plain", p.id);
         e.dataTransfer.setData("application/x-dvp-project-id", p.id);
-        if (e.altKey) e.dataTransfer.setData("application/x-dvp-project-copy", "1");
+        if (isCopyDrag(e)) e.dataTransfer.setData("application/x-dvp-project-copy", "1");
         e.dataTransfer.effectAllowed = "copyMove";
       } catch (_) {}
     },
@@ -178,7 +180,7 @@ function ProjectsKanban({ projects, onMove, onDuplicate, onAdd, onOpen, dropTarg
 
   const onColDragOver = (e, stage) => {
     e.preventDefault();
-    const copying = e.altKey || e.dataTransfer.getData("application/x-dvp-project-copy") === "1";
+    const copying = isCopyDrag(e);
     setOverStage(stage);
     try { e.dataTransfer.dropEffect = copying ? "copy" : "move"; } catch (_) {}
   };
@@ -189,7 +191,7 @@ function ProjectsKanban({ projects, onMove, onDuplicate, onAdd, onOpen, dropTarg
   const onColDrop = (e, stage) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/x-dvp-project-id") || e.dataTransfer.getData("text/plain") || draggingId;
-    const copying = e.altKey || e.dataTransfer.getData("application/x-dvp-project-copy") === "1";
+    const copying = isCopyDrag(e) || e.dataTransfer.getData("application/x-dvp-project-copy") === "1";
     if (id) {
       if (copying) onDuplicate?.(id, stage);
       else onMove(id, stage);
