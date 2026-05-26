@@ -25,6 +25,7 @@ function App() {
   // State
   const [crews, setCrews] = aUseState(D.INITIAL_CREWS);
   const [jobs, setJobs] = aUseState(D.ALL_JOBS);
+  const [weekSchedule, setWeekSchedule] = aUseState(D.WEEK_SCHEDULE);
   const [bench, setBench] = aUseState(D.BENCH);
   const [date, setDate] = aUseState(new Date(2026, 4, 26)); // May 26 2026
   const [view, setView] = aUseState("BOARD");
@@ -46,10 +47,14 @@ function App() {
   const toastTimerRef = aUseRef(null);
   const undoStackRef = aUseRef([]);
   const jobsRef = aUseRef(jobs);
+  const weekScheduleRef = aUseRef(weekSchedule);
 
   aUseEffect(() => {
     jobsRef.current = jobs;
   }, [jobs]);
+  aUseEffect(() => {
+    weekScheduleRef.current = weekSchedule;
+  }, [weekSchedule]);
 
   // Map / Dispatch local UI
   const [mapOnly, setMapOnly] = aUseState(false);
@@ -182,18 +187,47 @@ function App() {
     },
   };
 
-  const assignJob = aUseCallback((jobId, crewId) => {
+  const moveJobInSchedule = aUseCallback((schedule, job, crewId, dayIdx = 2) => {
+    const next = {};
+    Object.entries(schedule || {}).forEach(([schedCrewId, days]) => {
+      next[schedCrewId] = {};
+      Object.entries(days || {}).forEach(([dayKey, items]) => {
+        const filtered = (items || []).filter(item => item.jobId !== job.id);
+        if (filtered.length) next[schedCrewId][dayKey] = filtered;
+      });
+    });
+    if (crewId) {
+      const dayKey = String(dayIdx);
+      next[crewId] = next[crewId] || {};
+      const existing = next[crewId][dayKey] || [];
+      next[crewId][dayKey] = [
+        ...existing,
+        {
+          jobId: job.id,
+          hours: job.hours || 8,
+          night: !!job.note?.toLowerCase().includes("night"),
+        },
+      ];
+    }
+    return next;
+  }, []);
+
+  const assignJob = aUseCallback((jobId, crewId, dayIdx = 2) => {
     const normalizedCrewId = crewId || null;
     const movedJob = jobsRef.current.find(j => j.id === jobId);
     if (!movedJob || movedJob.crew === normalizedCrewId) return;
     const prevCrew = movedJob.crew || null;
+    const prevSchedule = weekScheduleRef.current;
+    const nextSchedule = moveJobInSchedule(prevSchedule, movedJob, normalizedCrewId, dayIdx);
 
     jobsRef.current = jobsRef.current.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j);
+    weekScheduleRef.current = nextSchedule;
     setJobs((prev) => {
       const job = prev.find(j => j.id === jobId);
       if (!job || job.crew === normalizedCrewId) return prev;
       return prev.map(j => j.id === jobId ? { ...j, crew: normalizedCrewId } : j);
     });
+    setWeekSchedule(nextSchedule);
 
     setAssigningLaneId(normalizedCrewId || "unassigned");
     setSnapJobId(jobId);
@@ -205,13 +239,15 @@ function App() {
     const msg = `<span class="num">${movedJob.code}</span> · ${movedJob.name.length > 36 ? movedJob.name.slice(0,36)+"..." : movedJob.name} -> <strong>${crewName}</strong>`;
     showToast(msg, () => {
       jobsRef.current = jobsRef.current.map(j => j.id === jobId ? { ...j, crew: prevCrew } : j);
+      weekScheduleRef.current = prevSchedule;
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, crew: prevCrew } : j));
+      setWeekSchedule(prevSchedule);
       setAssigningLaneId(prevCrew || "unassigned");
       setSnapJobId(jobId);
       window.setTimeout(() => setAssigningLaneId(null), 360);
       window.setTimeout(() => setSnapJobId(null), 240);
     });
-  }, [crews, showToast]);
+  }, [crews, moveJobInSchedule, showToast]);
 
   const openAddJob = aUseCallback((crewId = null) => {
     setAddJobCrewId(crewId || "");
@@ -399,7 +435,8 @@ function App() {
         {view === "CREW" && (
           <window.CrewView
             crews={crews}
-            scheduleByCrew={D.WEEK_SCHEDULE}
+            jobs={jobs}
+            scheduleByCrew={weekSchedule}
             dragHandlers={dragHandlers}
             dropHandlers={{
               onDragOver: (e, key) => { e.preventDefault(); setDropTargetId(key); },
@@ -411,7 +448,7 @@ function App() {
                 e.preventDefault();
                 const jobId = e.dataTransfer.getData("application/x-dvp-job-id") || e.dataTransfer.getData("text/plain") || draggingId;
                 if (jobId) {
-                  assignJob(jobId, crewId);
+                  assignJob(jobId, crewId, dayIdx);
                 }
                 setDropTargetId(null);
                 setDraggingId(null);
@@ -531,6 +568,7 @@ function App() {
           onClick={() => {
             setJobs(D.ALL_JOBS);
             setCrews(D.INITIAL_CREWS);
+            setWeekSchedule(D.WEEK_SCHEDULE);
             setBench(D.BENCH);
           }}
         />

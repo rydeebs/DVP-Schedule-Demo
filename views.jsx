@@ -37,7 +37,7 @@ function WxGlyph({ kind = "sun", size = 12 }) {
    CrewView — Crew rows × 7 day columns weekly grid
    ────────────────────────────────────────────────────────────────── */
 function CrewView({
-  crews, scheduleByCrew, dropHandlers, dragHandlers,
+  crews, jobs, scheduleByCrew, dropHandlers, dragHandlers,
   isDropTarget, snapJobId,
   onOpenJob, onAddJob,
 }) {
@@ -47,9 +47,9 @@ function CrewView({
 
   const allJobsById = vUseMemo(() => {
     const m = {};
-    D.ALL_JOBS.forEach(j => { m[j.id] = j; });
+    jobs.forEach(j => { m[j.id] = j; });
     return m;
-  }, []);
+  }, [jobs]);
 
   return (
     <div className="weekgrid">
