@@ -127,6 +127,7 @@ function SettingsRail({ activeKey, onPick }) {
     { label: "Configuration & Security", items: [
       { key: "settings",      label: "Settings",          ico: SetIcons.Cog },
       { key: "users",         label: "Users",             ico: SetIcons.Users },
+      { key: "workers",       label: "Workers",           ico: SetIcons.Users },
       { key: "user-roles",    label: "User Roles",        ico: SetIcons.Shield },
       { key: "integrations",  label: "Integrations",      ico: SetIcons.Plug },
       { key: "forms",         label: "Forms",             ico: SetIcons.Doc },
@@ -543,12 +544,26 @@ function SettingsPanel({ section }) {
 function WorkersPanel() {
   const D = window.SAFETY_DATA;
   const workers = D?.WORKERS || [];
+  const [query, setQuery] = sUseState("");
+  const [roleFilter, setRoleFilter] = sUseState("all");
+  const [scope, setScope] = sUseState("all");
   const certsByWorker = sUseMemo(() => {
     return (D?.CERT_HOLDINGS || []).reduce((map, cert) => {
       (map[cert.workerId] ||= []).push(cert);
       return map;
     }, {});
   }, [D]);
+  const visibleWorkers = sUseMemo(() => {
+    const q = query.trim().toLowerCase();
+    return workers.filter(w => {
+      const crew = w.crew ? { name: w.crew, division: "Assigned crew" } : null;
+      if (scope === "crew" && !crew) return false;
+      if (scope === "bench" && crew) return false;
+      if (roleFilter !== "all" && !String(w.role).toLowerCase().includes(roleFilter)) return false;
+      if (!q) return true;
+      return `${w.name} ${w.role} ${w.init} ${crew?.name || ""} ${crew?.division || ""}`.toLowerCase().includes(q);
+    });
+  }, [workers, query, roleFilter, scope, crewsByWorker]);
 
   return (
     <>
@@ -573,27 +588,79 @@ function WorkersPanel() {
         </div>
         <div className="set-metric">
           <span className="l">Bench / unassigned</span>
-          <span className="v">7</span>
+          <span className="v">{workers.filter(w => !crewsByWorker[w.id]).length}</span>
+        </div>
+      </div>
+      <div className="cust-tools" style={{ padding: 0, marginBottom: 16 }}>
+        <div className="cust-search" style={{ maxWidth: 360 }}>
+          <SetIcons.Search size={13} />
+          <input placeholder="Search workers..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <div className="tabs" style={{ gap: 6 }}>
+          {[
+            { key: "all", label: "ALL" },
+            { key: "crew", label: "CREW" },
+            { key: "bench", label: "BENCH" },
+          ].map(opt => (
+            <button key={opt.key} className={`tab ${scope === opt.key ? "active" : ""}`} onClick={() => setScope(opt.key)}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="tabs" style={{ gap: 6, marginLeft: 12 }}>
+          {[
+            { key: "all", label: "ALL ROLES" },
+            { key: "foreman", label: "FOREMEN" },
+            { key: "operator", label: "OPERATORS" },
+            { key: "laborer", label: "LABOR" },
+            { key: "cdl", label: "CDL" },
+          ].map(opt => (
+            <button key={opt.key} className={`tab ${roleFilter === opt.key ? "active" : ""}`} onClick={() => setRoleFilter(opt.key)}>
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
       <div className="set-panel">
-        {workers.map(w => {
+        <div className="set-field-row" style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-3)" }}>
+          <div>Worker</div>
+          <div>Role / Crew</div>
+          <div style={{ textAlign: "right" }}>Status</div>
+        </div>
+        {visibleWorkers.map(w => {
           const certs = certsByWorker[w.id] || [];
+          const crew = w.crew ? { name: w.crew, division: "Assigned crew" } : null;
           const expiring = certs.filter(c => D.daysFromToday(c.expires) <= 30).length;
           return (
             <div className="set-field-row" key={w.id} style={{ alignItems: "flex-start", gap: 16 }}>
               <div>
                 <span className="lbl">{w.name}</span>
-                <span className="help">{w.role} · {w.crew || "Unassigned"} · {certs.length} certs{expiring > 0 ? ` · ${expiring} expiring` : ""}</span>
+                <span className="help">{w.init} · {certs.length} certs{expiring > 0 ? ` · ${expiring} expiring` : ""}</span>
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <div>
+                <div style={{ color: "var(--ink-0)", fontSize: 13 }}>{w.role}</div>
+                <div className="help" style={{ marginTop: 2 }}>{crew ? `${crew.name} · ${crew.division}` : "Bench / unassigned"}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
                 <StatusPill variant="info">{w.init}</StatusPill>
-                <StatusPill variant={w.crew ? "ok" : "warn"}>{w.crew || "BENCH"}</StatusPill>
+                <StatusPill variant={crew ? "ok" : "warn"}>{crew ? "ASSIGNED" : "BENCH"}</StatusPill>
                 {expiring > 0 && <StatusPill variant="stop">{expiring} EXPIRING</StatusPill>}
               </div>
             </div>
           );
         })}
+        {visibleWorkers.length === 0 && (
+          <div style={{
+            padding: 24,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--ink-3)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}>
+            No workers match this filter
+          </div>
+        )}
       </div>
     </>
   );
