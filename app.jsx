@@ -191,6 +191,8 @@ function App() {
           view={view} onView={setView}
           date={date} onDate={onDateNudge}
           totals={totals}
+          canUndo={!!toast?.undoFn}
+          onUndo={handleUndo}
         />
         {t.showHeroRail && view === "BOARD" && <MetricsRail totals={totals} />}
 
@@ -238,8 +240,6 @@ function App() {
                 const jobId = e.dataTransfer.getData("text/plain") || draggingId;
                 if (jobId) {
                   assignJob(jobId, crewId);
-                  showToast(`Scheduled to <strong>${crews.find(c=>c.id===crewId)?.name}</strong> · ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dayIdx]} May ${24+dayIdx}`,
-                    () => { /* schedule undo would revert here */ });
                 }
                 setDropTargetId(null);
                 setDraggingId(null);

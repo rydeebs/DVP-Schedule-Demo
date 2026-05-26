@@ -95,7 +95,7 @@ function Sidebar({ collapsed }) {
 }
 
 /* ─────────────────────────── Subheader ─────────────────────────── */
-function Subheader({ view, onView, date, onDate, totals }) {
+function Subheader({ view, onView, date, onDate, totals, canUndo, onUndo }) {
   const dayLabels = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
   const d = date;
   const monthName = d.toLocaleString("en-US",{ month: "short" }).toUpperCase();
@@ -118,7 +118,18 @@ function Subheader({ view, onView, date, onDate, totals }) {
       <div className="spacer"></div>
       <button className="filter-chip"><span className="dot" style={{ background: "var(--status-ok)" }}></span> ALL DIVISIONS</button>
       <button className="filter-chip"><Icons.Filter size={12} /> FILTERS · 2</button>
-      <button className="btn btn-ghost"><Icons.Undo size={14} /> History</button>
+      {view === "CREW" ? (
+        <button
+          className="btn btn-ghost"
+          onClick={onUndo}
+          disabled={!canUndo}
+          title={canUndo ? "Undo last crew assignment" : "No crew assignment to undo"}
+        >
+          <Icons.Undo size={14} /> Undo
+        </button>
+      ) : (
+        <button className="btn btn-ghost"><Icons.Undo size={14} /> History</button>
+      )}
       <button className="btn btn-secondary"><Icons.Plus size={14} /> Add Job</button>
       <button className="btn btn-primary">Notify Crews · {totals.notifyCount}</button>
     </div>

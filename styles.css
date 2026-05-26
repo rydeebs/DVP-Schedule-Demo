@@ -411,6 +411,14 @@ body { overflow: hidden; }
   color: var(--ink-1);
 }
 .btn-ghost:hover { background: var(--surface-2); color: var(--ink-0); }
+.btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.btn:disabled:hover {
+  background: transparent;
+  color: var(--ink-1);
+}
 
 /* ───────────────────────── Hero metrics rail ───────────────────────── */
 .metrics {
