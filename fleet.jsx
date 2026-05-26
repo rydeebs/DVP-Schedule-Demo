@@ -77,7 +77,7 @@ function FleetSidebar({ collapsed }) {
   const items = [
     { group: "Schedule", entries: [
       { ico: Icons.Calendar, label: "Crew Calendar", href: "Crew Calendar Board.html" },
-      { ico: Icons.Truck,    label: "Dispatch",      badge: "47", href: "Crew Calendar Board.html" },
+      { ico: Icons.Truck,    label: "Dispatch",      badge: "47", href: "Dispatch.html" },
       { ico: Icons.Map,      label: "Fleet Tracking", badge: "LIVE", active: true, href: "Fleet.html" },
     ]},
     { group: "Field", entries: [
