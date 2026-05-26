@@ -1049,11 +1049,20 @@ body { overflow: hidden; }
   border-radius: var(--r);
   background: var(--surface-0);
   border: 1px solid var(--ink-border);
-  cursor: grab;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
   user-select: none;
   transition: border var(--d-fast), background var(--d-fast);
+  appearance: none;
+  text-align: left;
 }
 .wc:hover { border-color: var(--ink-3); }
+.wc:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 1px;
+}
+.wc.clickable:hover { transform: translateY(-1px); }
 .wc.assigned {
   background: var(--signal-soft);
   border-color: var(--signal-line);
@@ -5061,6 +5070,51 @@ body { overflow: hidden; }
   color: var(--ink-3); text-transform: uppercase;
 }
 .proj-info-row .val { color: var(--ink-0); }
+.worker-drawer .proj-stats {
+  grid-template-columns: 1fr 1fr;
+}
+.worker-job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--ink-border);
+}
+.worker-job-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s2) var(--s3);
+  background: var(--surface-1);
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.worker-job-row .code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.06em;
+}
+.worker-job-row .nm {
+  font-size: 13px;
+  color: var(--ink-0);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.worker-job-row .meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
 .proj-drawer-foot {
   border-top: 1px solid var(--ink-border);
   padding: var(--s3) var(--s5);

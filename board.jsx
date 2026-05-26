@@ -677,8 +677,112 @@ function BoardJobDrawer({ job, crews, onClose, onAssign }) {
   );
 }
 
+function WorkerDrawer({ worker, crews, bench, jobs, onClose }) {
+  if (!worker) return null;
+  const D = window.DATA;
+  const crew = crews.find((c) => c.workerIds.includes(worker.id)) || null;
+  const benchEntry = bench.find((b) => b.workerId === worker.id) || null;
+  const homeCrew = crew ? D.lookup(crew.foremanId) : null;
+  const crewJobs = crew ? jobs.filter((j) => j.crew === crew.id) : [];
+  const statusLabel = crew
+    ? "Assigned"
+    : benchEntry
+    ? (benchEntry.state || "available").replace(/_/g, " ")
+    : "Unassigned";
+  const statusTone = crew ? "ok" : benchEntry?.state === "pto" || benchEntry?.state === "sick" ? "warn" : "info";
+
+  return (
+    <div className="proj-drawer worker-drawer" role="dialog" aria-label="Worker detail">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">{worker.id}</span>
+          <StatusPill variant={statusTone}>{statusLabel.toUpperCase()}</StatusPill>
+          <h2 className="nm">{worker.name}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+        <div className="meta">
+          <Icons.Users size={11} /><span>{worker.role}</span>
+          <span className="sep">·</span>
+          <Icons.Building size={11} /><span>{crew ? crew.division : "Bench / unassigned"}</span>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="proj-stats">
+          <div className="s">
+            <span className="l">Crew</span>
+            <span className="v" style={{ fontSize: 17 }}>{crew?.name || "Unassigned"}</span>
+          </div>
+          <div className="s">
+            <span className="l">Foreman</span>
+            <span className="v" style={{ fontSize: 17 }}>{homeCrew?.name || crew?.name || "—"}</span>
+          </div>
+          <div className="s">
+            <span className="l">Certs</span>
+            <span className="v" style={{ fontSize: 17 }}>{worker.cert?.join(", ") || "None"}</span>
+          </div>
+          <div className="s">
+            <span className="l">Status</span>
+            <span className="v" style={{ fontSize: 17 }}>{statusLabel}</span>
+          </div>
+        </div>
+
+        <div className="proj-info-row">
+          <span className="lbl">Worker</span>
+          <span className="val">{worker.name}</span>
+        </div>
+        <div className="proj-info-row">
+          <span className="lbl">Role</span>
+          <span className="val">{worker.role}</span>
+        </div>
+        <div className="proj-info-row">
+          <span className="lbl">Crew</span>
+          <span className="val">{crew ? crew.name : "Unassigned"}</span>
+        </div>
+        <div className="proj-info-row">
+          <span className="lbl">Division</span>
+          <span className="val">{crew?.division || "Bench / unassigned"}</span>
+        </div>
+        <div className="proj-info-row">
+          <span className="lbl">Crew size</span>
+          <span className="val">{crew ? crew.workerIds.length : 0}</span>
+        </div>
+        <div className="proj-info-row">
+          <span className="lbl">Crew jobs</span>
+          <span className="val">{crew ? `${crewJobs.length} active job${crewJobs.length === 1 ? "" : "s"}` : "No assigned jobs"}</span>
+        </div>
+        {benchEntry && (
+          <div className="proj-info-row">
+            <span className="lbl">Bench note</span>
+            <span className="val">{benchEntry.note || "Unassigned worker"}</span>
+          </div>
+        )}
+        {crewJobs.length > 0 && (
+          <>
+            <div className="cust-sub-h" style={{ marginTop: 18 }}>
+              <span>Assigned Jobs</span>
+              <span className="c">{crewJobs.length}</span>
+            </div>
+            <div className="worker-job-list">
+              {crewJobs.map((job) => (
+                <div key={job.id} className="worker-job-row" title={job.name}>
+                  <span className="code">{job.code}</span>
+                  <span className="nm">{job.name}</span>
+                  <span className="meta">{job.startTime ? `${job.startTime}–${job.endTime}` : `${job.hours}h`}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
+      </footer>
+    </div>
+  );
+}
+
 /* ─────────────────────────── Bench bar ─────────────────────────── */
-function BenchBar({ bench, onAddBench }) {
+function BenchBar({ bench, onAddBench, onOpenWorker }) {
   const [query, setQuery] = bUseState("");
   const groups = {
     available: { lbl: "UNASSIGNED", state: "available", dashed: true },
@@ -723,6 +827,7 @@ function BenchBar({ bench, onAddBench }) {
                   worker={{ init: w.init, name: w.name, role: w.role, cert: [] }}
                   state={g.state}
                   dashed={g.dashed}
+                  onClick={() => onOpenWorker?.({ id: w.workerId, name: w.name, role: w.role, init: w.init, cert: [], state: w.state, note: w.note })}
                 />
               ))}
             </div>

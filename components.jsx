@@ -101,21 +101,25 @@ function StatusPill({ variant = "info", children, signal }) {
 }
 
 /* ───────────────────── Worker chip ───────────────────── */
-function WorkerChip({ worker, state = "available", dashed, dense }) {
+function WorkerChip({ worker, state = "available", dashed, dense, onClick }) {
   const roleAbbr = {
     foreman: "FOR", operator: "OPR", laborer: "LBR",
     "cdl driver": "CDL", "grade checker": "GRD", mason: "MAS",
   }[worker.role] || "—";
   const isForeman = worker.role === "foreman";
+  const Tag = onClick ? "button" : "span";
   return (
-    <span
-      className={`wc ${state} ${isForeman ? "foreman" : ""} ${dashed ? "available-dash" : ""}`}
+    <Tag
+      type={onClick ? "button" : undefined}
+      className={`wc ${state} ${isForeman ? "foreman" : ""} ${dashed ? "available-dash" : ""} ${onClick ? "clickable" : ""}`}
       title={`${worker.name} — ${worker.role}${worker.cert ? " · " + worker.cert.join(", ") : ""}`}
+      aria-label={onClick ? `View ${worker.name}` : undefined}
+      onClick={onClick}
     >
       <span className="wc-av">{worker.init}</span>
       {!dense && <span className="wc-name">{worker.name.split(" ")[0]} {worker.name.split(" ")[1]?.[0]}.</span>}
       {!dense && <span className="wc-role">{roleAbbr}</span>}
-    </span>
+    </Tag>
   );
 }
 

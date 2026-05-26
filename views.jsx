@@ -41,6 +41,7 @@ function CrewView({
   isDropTarget, snapJobId,
   onOpenJob, onAddJob,
   departmentView, onDepartmentViewChange,
+  onOpenWorker,
 }) {
   const D = window.DATA;
   const WEEK = D.WEEK_DAYS;
@@ -138,7 +139,13 @@ function CrewView({
                   <span className="sub2">{c.division.toUpperCase()} · {c.workerIds.length} CREW</span>
                   <div className="wg-crew-workers">
                     {crewWorkers.map((worker) => (
-                      <WorkerChip key={worker.id} worker={worker} state="assigned" dense />
+                      <WorkerChip
+                        key={worker.id}
+                        worker={worker}
+                        state="assigned"
+                        dense
+                        onClick={() => onOpenWorker?.(worker)}
+                      />
                     ))}
                   </div>
                   <div className="stat-row">
@@ -217,6 +224,7 @@ function CrewView({
                     state={worker.state === "available" || worker.state === "shop" ? "available" : "unavailable"}
                     dashed={worker.state === "available" || worker.state === "shop"}
                     dense
+                    onClick={() => onOpenWorker?.({ id: worker.workerId, name: worker.name, role: worker.role, init: worker.init, cert: [], state: worker.state, note: worker.note })}
                   />
                 ))}
               </div>

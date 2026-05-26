@@ -41,6 +41,7 @@ function App() {
   const [snapJobId, setSnapJobId] = aUseState(null);
   const [toast, setToast] = aUseState(null);
   const [selectedJobId, setSelectedJobId] = aUseState(null);
+  const [selectedWorkerId, setSelectedWorkerId] = aUseState(null);
   const [addJobCrewId, setAddJobCrewId] = aUseState(null);
   const [addBenchOpen, setAddBenchOpen] = aUseState(false);
   const [commandOpen, setCommandOpen] = aUseState(false);
@@ -70,6 +71,32 @@ function App() {
 
   const unassigned = aUseMemo(() => jobs.filter(j => !j.crew), [jobs]);
   const selectedJob = aUseMemo(() => jobs.find(j => j.id === selectedJobId) || null, [jobs, selectedJobId]);
+  const selectedWorker = aUseMemo(() => {
+    if (!selectedWorkerId) return null;
+    const benchWorker = bench.find((w) => w.workerId === selectedWorkerId);
+    if (benchWorker) {
+      return {
+        id: benchWorker.workerId,
+        name: benchWorker.name,
+        role: benchWorker.role,
+        init: benchWorker.init,
+        cert: [],
+        source: "bench",
+        state: benchWorker.state,
+        note: benchWorker.note,
+      };
+    }
+    const crew = crews.find((c) => c.workerIds.includes(selectedWorkerId)) || null;
+    const base = D.lookup(selectedWorkerId);
+    if (!base && !crew) return null;
+    return {
+      ...(base || { id: selectedWorkerId, name: "Unknown worker", role: "laborer", init: "?", cert: [] }),
+      source: "crew",
+      state: "assigned",
+      crewId: crew?.id || null,
+      crewName: crew?.name || null,
+    };
+  }, [selectedWorkerId, crews, bench, D]);
   const filterState = aUseMemo(() => ({
     status: jobStatusFilter,
     priority: priorityFilter,
@@ -442,7 +469,7 @@ function App() {
               ))}
               <AddCrewLane onAddCrew={addCrew} />
             </div>
-            {t.showBench && <BenchBar bench={bench} onAddBench={() => setAddBenchOpen(true)} />}
+            {t.showBench && <BenchBar bench={bench} onAddBench={() => setAddBenchOpen(true)} onOpenWorker={(worker) => setSelectedWorkerId(worker.id)} />}
           </div>
         )}
 
@@ -450,9 +477,9 @@ function App() {
           <window.CrewView
             crews={crews}
             jobs={jobs}
-            bench={bench}
-            scheduleByCrew={weekSchedule}
-            dragHandlers={dragHandlers}
+              bench={bench}
+              scheduleByCrew={weekSchedule}
+              dragHandlers={dragHandlers}
             dropHandlers={{
               onDragOver: (e, key) => { e.preventDefault(); setDropTargetId(key); },
               onDragLeave: (e, key) => {
@@ -475,6 +502,7 @@ function App() {
             onAddJob={openAddJob}
             departmentView={crewDepartmentView}
             onDepartmentViewChange={setCrewDepartmentView}
+            onOpenWorker={(worker) => setSelectedWorkerId(worker.id)}
           />
         )}
 
@@ -486,6 +514,7 @@ function App() {
             onToggleMap={() => setMapOnly(v => !v)}
             onAddJob={openAddJob}
             onOpenJob={(job) => setSelectedJobId(job.id)}
+            onOpenWorker={(worker) => setSelectedWorkerId(worker.id)}
             onNotify={() => showToast(`<strong>${totals.notifyCount}</strong> crew dispatch notifications queued`)}
           />
         )}
@@ -523,6 +552,13 @@ function App() {
         crews={crews}
         onClose={() => setSelectedJobId(null)}
         onAssign={assignJob}
+      />
+      <WorkerDrawer
+        worker={selectedWorker}
+        crews={crews}
+        bench={bench}
+        jobs={jobs}
+        onClose={() => setSelectedWorkerId(null)}
       />
 
       {/* Tweaks panel */}
