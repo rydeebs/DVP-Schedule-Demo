@@ -131,12 +131,14 @@ function App() {
   const dropHandlers = {
     onDragOver: (e, crewId) => {
       e.preventDefault();
-      if (t.highlightDropTargets) setDropTargetId(crewId);
+      const targetId = crewId || "unassigned";
+      if (t.highlightDropTargets) setDropTargetId(targetId);
       try { e.dataTransfer.dropEffect = "move"; } catch (_) {}
     },
     onDragLeave: (e, crewId) => {
       if (e.currentTarget.contains(e.relatedTarget)) return;
-      setDropTargetId((cur) => cur === crewId ? null : cur);
+      const targetId = crewId || "unassigned";
+      setDropTargetId((cur) => cur === targetId ? null : cur);
     },
     onDrop: (e, crewId) => {
       e.preventDefault();
@@ -300,10 +302,12 @@ function App() {
             <UnassignedPool
               jobs={unassigned}
               dragHandlers={dragHandlers}
+              dropHandlers={dropHandlers}
               draggingId={draggingId}
               query={query}
               setQuery={setQuery}
               onOpenJob={(job) => setSelectedJobId(job.id)}
+              isDropTarget={dropTargetId === "unassigned"}
             />
             <div className="lanes">
               {crews.map(c => (

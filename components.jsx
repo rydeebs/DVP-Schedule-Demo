@@ -155,7 +155,7 @@ function JobCard({
       }}
       onDragEnd={(e) => {
         dragHandlers?.onDragEnd?.(e, job);
-        window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+        window.setTimeout(() => { suppressClickRef.current = false; }, 160);
       }}
       onClick={() => {
         if (!suppressClickRef.current) onOpen?.(job);

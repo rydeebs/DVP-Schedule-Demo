@@ -179,7 +179,7 @@ function MetricsRail({ totals }) {
 }
 
 /* ─────────────────────────── Unassigned pool ─────────────────────────── */
-function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery, onOpenJob }) {
+function UnassignedPool({ jobs, dragHandlers, dropHandlers, draggingId, query, setQuery, onOpenJob, isDropTarget }) {
   const filtered = jobs.filter(j =>
     !query ||
     j.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -191,7 +191,12 @@ function UnassignedPool({ jobs, dragHandlers, draggingId, query, setQuery, onOpe
   const low  = filtered.filter(j => j.priority === "low");
 
   return (
-    <aside className="pool">
+    <aside
+      className={`pool ${isDropTarget ? "drop-target" : ""}`}
+      onDragOver={(e) => dropHandlers?.onDragOver?.(e, null)}
+      onDragLeave={(e) => dropHandlers?.onDragLeave?.(e, null)}
+      onDrop={(e) => dropHandlers?.onDrop?.(e, null)}
+    >
       <div className="pool-hdr">
         <span className="h">Unassigned · Tue 05/26</span>
         <span className="c">{filtered.length} of {jobs.length}</span>
