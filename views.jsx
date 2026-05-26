@@ -204,10 +204,10 @@ function DispatchView({ jobs, crews, mapOnly, onToggleMap }) {
             <Icons.Map size={12} />
             {mapOnly ? "LIST VIEW" : "MAP VIEW"}
           </button>
-          <button className="btn btn-secondary" style={{ height: 28 }}>
+          <button className="btn btn-secondary">
             <Icons.Bell size={12} /> Notify Drivers · {tabs[1].count}
           </button>
-          <button className="btn btn-primary" style={{ height: 28 }}>
+          <button className="btn btn-primary">
             <Icons.Plus size={12} /> Add Job
           </button>
         </div>
