@@ -74,7 +74,7 @@
 
   /* Layout */
   --header-h: 56px;
-  --sidebar-w: 240px;
+  --sidebar-w: 216px;
   --sidebar-w-collapsed: 56px;
   --subheader-h: 52px;
 }
@@ -369,12 +369,12 @@ body { overflow: hidden; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
-  padding: var(--s4) var(--s5) var(--s2);
+  padding: var(--s4) var(--s4) var(--s2);
 }
 .app[data-collapsed="true"] .sb-group { padding: var(--s4) 0 var(--s2); text-align: center; font-size: 9px; }
 .sb-item {
   display: flex; align-items: center; gap: var(--s3);
-  padding: 0 var(--s5);
+  padding: 0 var(--s4);
   height: 36px;
   color: var(--ink-1);
   font-size: var(--text-sm);
