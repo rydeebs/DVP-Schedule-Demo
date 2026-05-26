@@ -151,18 +151,15 @@ function MetricsRail({ totals }) {
       />
       <div className="metric-cta">
         <span className="label" style={{
-          fontFamily: "var(--font-mono)", fontSize: 10,
+          fontFamily: "var(--font-mono)", fontSize: 9,
           letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-2)"
         }}>Dispatch readiness</span>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, height: 4, background: "var(--surface-2)", borderRadius: 2, overflow: "hidden" }}>
             <div style={{ width: "78%", height: "100%", background: "var(--signal)" }}></div>
           </div>
-          <span className="num" style={{ fontSize: 13, color: "var(--ink-0)" }}>78%</span>
+          <span className="num" style={{ fontSize: 12, color: "var(--ink-0)" }}>78%</span>
         </div>
-        <span className="num" style={{ fontSize: 10, color: "var(--ink-2)" }}>
-          {totals.unassigned} jobs need a crew · ETA close 09:14
-        </span>
       </div>
     </div>
   );

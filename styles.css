@@ -423,19 +423,19 @@ body { overflow: hidden; }
 }
 .metric {
   background: var(--surface-0);
-  padding: 5px var(--s3);
+  padding: 3px var(--s3);
   display: flex; flex-direction: column; gap: 1px;
 }
 .metric .label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-2);
 }
 .metric .value {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   color: var(--ink-0);
   font-weight: 400;
@@ -443,7 +443,7 @@ body { overflow: hidden; }
 }
 .metric .value .sub {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--ink-2);
   font-weight: 400;
   letter-spacing: 0;
@@ -459,10 +459,10 @@ body { overflow: hidden; }
 
 .metric-cta {
   background: var(--surface-0);
-  padding: 5px var(--s3);
-  display: flex; flex-direction: column; gap: 4px;
+  padding: 3px var(--s3);
+  display: flex; flex-direction: column; gap: 3px;
   justify-content: center;
-  min-width: 220px;
+  min-width: 200px;
 }
 
 /* ───────────────────────── Board ───────────────────────── */
@@ -565,9 +565,9 @@ body { overflow: hidden; }
 }
 
 .lane-hdr {
-  padding: var(--s3) var(--s4);
+  padding: 6px 10px;
   border-bottom: 1px solid var(--ink-border);
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 3px;
   flex-shrink: 0;
 }
 .lane-name-row { display: flex; align-items: center; gap: var(--s2); }
@@ -601,7 +601,7 @@ body { overflow: hidden; }
 
 .lane-sub {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-2);
   letter-spacing: 0.04em;
   display: flex; align-items: center; gap: var(--s2);
@@ -612,7 +612,7 @@ body { overflow: hidden; }
   display: flex; align-items: center; gap: var(--s2);
 }
 .cap-bar .cap-track {
-  flex: 1; height: 4px; background: var(--surface-3);
+  flex: 1; height: 3px; background: var(--surface-3);
   border-radius: 2px; overflow: hidden;
 }
 .cap-bar .cap-fill {
@@ -620,7 +620,7 @@ body { overflow: hidden; }
   transition: width var(--d-normal) var(--ease-out);
 }
 .cap-bar .cap-num {
-  font-family: var(--font-mono); font-size: 11px; color: var(--ink-1);
+  font-family: var(--font-mono); font-size: 10px; color: var(--ink-1);
 }
 
 .lane-roster {
@@ -630,7 +630,7 @@ body { overflow: hidden; }
   flex-shrink: 0;
 }
 .lane-equip {
-  padding: var(--s2) var(--s4) var(--s3);
+  padding: 5px 10px;
   border-bottom: 1px solid var(--ink-border);
   display: flex; flex-wrap: wrap; gap: var(--s1);
   flex-shrink: 0;
