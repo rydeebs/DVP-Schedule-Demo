@@ -90,7 +90,7 @@ function SetSidebar({ collapsed }) {
       { ico: Icons.Schedule, label: "Projects",   badge: "141", href: "Projects.html" },
       { ico: Icons.Building, label: "Customers", href: "Customers.html" },
       { ico: Icons.Wrench,   label: "Equipment", href: "Equipment.html" },
-      { ico: Icons.Users,    label: "Workers",    badge: "203" },
+      { ico: Icons.Users,    label: "Workers",    badge: "203", href: "Settings.html#workers" },
     ]},
   ];
   return (
@@ -540,6 +540,65 @@ function SettingsPanel({ section }) {
   );
 }
 
+function WorkersPanel() {
+  const D = window.SAFETY_DATA;
+  const workers = D?.WORKERS || [];
+  const certsByWorker = sUseMemo(() => {
+    return (D?.CERT_HOLDINGS || []).reduce((map, cert) => {
+      (map[cert.workerId] ||= []).push(cert);
+      return map;
+    }, {});
+  }, [D]);
+
+  return (
+    <>
+      <div className="set-section-h">
+        <span className="num">{workers.length}</span>
+        <span className="h">Workers</span>
+        <span className="hint">Crew assignment, role coverage, and safety-linked status.</span>
+        <div className="right"><StatusPill variant="ok">LIVE</StatusPill></div>
+      </div>
+      <div className="set-metric-grid">
+        <div className="set-metric">
+          <span className="l">Foremen</span>
+          <span className="v">{workers.filter(w => /foreman/i.test(w.role)).length}</span>
+        </div>
+        <div className="set-metric">
+          <span className="l">Operators</span>
+          <span className="v">{workers.filter(w => /operator/i.test(w.role)).length}</span>
+        </div>
+        <div className="set-metric">
+          <span className="l">CDL drivers</span>
+          <span className="v">{workers.filter(w => /cdl/i.test(w.role)).length}</span>
+        </div>
+        <div className="set-metric">
+          <span className="l">Bench / unassigned</span>
+          <span className="v">7</span>
+        </div>
+      </div>
+      <div className="set-panel">
+        {workers.map(w => {
+          const certs = certsByWorker[w.id] || [];
+          const expiring = certs.filter(c => D.daysFromToday(c.expires) <= 30).length;
+          return (
+            <div className="set-field-row" key={w.id} style={{ alignItems: "flex-start", gap: 16 }}>
+              <div>
+                <span className="lbl">{w.name}</span>
+                <span className="help">{w.role} · {w.crew || "Unassigned"} · {certs.length} certs{expiring > 0 ? ` · ${expiring} expiring` : ""}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <StatusPill variant="info">{w.init}</StatusPill>
+                <StatusPill variant={w.crew ? "ok" : "warn"}>{w.crew || "BENCH"}</StatusPill>
+                {expiring > 0 && <StatusPill variant="stop">{expiring} EXPIRING</StatusPill>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 function DataObjectsPanel({ subtab }) {
   const [rows, setRows] = sUseState(() => DATA_OBJECTS[subtab] || []);
   const [draft, setDraft] = sUseState("");
@@ -611,6 +670,26 @@ function SettingsApp() {
   const [railKey, setRailKey] = sUseState("settings");
   const [tab, setTab] = sUseState("COMPANY"); // COMPANY | USER | DATA
   const [subtab, setSubtab] = sUseState("CALENDARS");
+  sUseEffect(() => {
+    const hash = (window.location.hash || "").replace(/^#/, "").toLowerCase();
+    if (hash === "workers") {
+      setRailKey("workers");
+      setTab("USER");
+      setSubtab("WORKERS");
+    }
+  }, []);
+  sUseEffect(() => {
+    const onHash = () => {
+      const hash = (window.location.hash || "").replace(/^#/, "").toLowerCase();
+      if (hash === "workers") {
+        setRailKey("workers");
+        setTab("USER");
+        setSubtab("WORKERS");
+      }
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const [calendars, setCalendars] = sUseState([
     {
@@ -696,12 +775,13 @@ function SettingsApp() {
 
   const tabSubtabs = {
     COMPANY: ["CALENDARS", "JOB BOARD", "PAYROLL", "CLOCK IN", "MISC", "BILLING", "DISPATCH", "INTEGRATIONS", "FORMS", "TIME OFF"],
-    USER: ["USERS", "ROLES", "NOTIFICATIONS", "SECURITY"],
+    USER: ["USERS", "WORKERS", "ROLES", "NOTIFICATIONS", "SECURITY"],
     DATA: Object.keys(DATA_OBJECTS),
   };
   const railRoutes = {
     settings: ["COMPANY", "CALENDARS"],
     users: ["USER", "USERS"],
+    workers: ["USER", "WORKERS"],
     "user-roles": ["USER", "ROLES"],
     integrations: ["COMPANY", "INTEGRATIONS"],
     forms: ["COMPANY", "FORMS"],
@@ -841,6 +921,10 @@ function SettingsApp() {
 
               {tab === "COMPANY" && subtab !== "CALENDARS" && activeSection && (
                 <SettingsPanel section={activeSection} />
+              )}
+
+              {tab === "USER" && subtab === "WORKERS" && (
+                <WorkersPanel />
               )}
 
               {tab === "USER" && activeSection && (

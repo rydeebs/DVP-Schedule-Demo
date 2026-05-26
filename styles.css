@@ -6264,6 +6264,8 @@ body { overflow: hidden; }
   border-bottom: 1px solid var(--ink-border);
   position: sticky; top: 0; z-index: 2;
   background: var(--surface-0);
+  min-height: 48px;
+  align-items: flex-end;
 }
 .set-tab {
   font-family: var(--font-mono);
@@ -6271,7 +6273,7 @@ body { overflow: hidden; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-2);
-  padding: var(--s3) var(--s3);
+  padding: 0 var(--s3) 12px;
   background: transparent; border: none; cursor: pointer;
   position: relative;
   transition: color var(--d-fast);
@@ -6284,11 +6286,13 @@ body { overflow: hidden; }
 }
 .set-subtabs {
   display: flex; gap: 4px;
-  padding: var(--s3) var(--s5);
+  padding: 10px var(--s5) 12px;
   background: var(--surface-1);
   border-bottom: 1px solid var(--ink-border);
-  position: sticky; top: 41px; z-index: 1;
+  position: sticky; top: 48px; z-index: 1;
   overflow-x: auto;
+  min-height: 48px;
+  align-items: center;
 }
 .set-subtab {
   font-family: var(--font-mono);
