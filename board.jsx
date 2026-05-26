@@ -383,7 +383,7 @@ function UnassignedPool({
 function CrewLane({
   crew, jobs, dragHandlers, dropHandlers,
   isDropTarget, isAssigning, snapJobId,
-  onOpenJob, onAddJob,
+  onOpenJob, onAddJob, onOpenCrew,
 }) {
   const D = window.DATA;
   const foreman = D.lookup(crew.foremanId);
@@ -451,9 +451,14 @@ function CrewLane({
       </div>
 
       <footer className="lane-foot">
-        <span className="total">
+        <button
+          className="total lane-foot-summary"
+          type="button"
+          onClick={() => onOpenCrew?.(crew.id)}
+          title="Open crew summary"
+        >
           {jobs.length} JOB{jobs.length === 1 ? "" : "S"} · {members.length} CREW · {crew.truckIds.length} TRUCKS
-        </span>
+        </button>
         <button className="lane-action" onClick={() => onAddJob?.(crew.id)}>+ ADD</button>
       </footer>
     </section>
@@ -858,6 +863,91 @@ function BoardJobDrawer({ job, crews, onClose, onAssign }) {
   );
 }
 
+function CrewDetailDrawer({ crew, jobs, workers, onClose, onOpenJob }) {
+  if (!crew) return null;
+  const D = window.DATA;
+  const foreman = D.lookup(crew.foremanId);
+  const totalHours = jobs.reduce((a, j) => a + (j.hours || 0), 0);
+  const nextJobs = [...jobs].slice(0, 5);
+  const trucks = crew.truckIds || [];
+  const equipment = crew.equipment || [];
+  const utilization = Math.min(100, Math.round((totalHours / 10) * 100));
+
+  return (
+    <div className="proj-drawer crew-drawer" role="dialog" aria-label="Crew detail">
+      <header className="proj-drawer-hdr">
+        <div className="row1">
+          <span className="code">{crew.id.toUpperCase()}</span>
+          <StatusPill variant={crew.gpsActive ? "ok" : "warn"}>{crew.gpsActive ? "GPS LIVE" : "GPS OFF"}</StatusPill>
+          <h2 className="nm">{crew.name}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icons.X size={14} /></button>
+        </div>
+        <div className="meta">
+          <Icons.Building size={11} /><span>{crew.division}</span>
+          <span className="sep">·</span>
+          <Icons.Users size={11} /><span>FOREMAN {foreman?.name || "—"}</span>
+        </div>
+      </header>
+      <div className="proj-drawer-body">
+        <div className="proj-stats">
+          <div className="s">
+            <span className="l">Jobs</span>
+            <span className="v">{jobs.length}</span>
+          </div>
+          <div className="s">
+            <span className="l">Crew</span>
+            <span className="v">{workers.length}</span>
+          </div>
+          <div className="s">
+            <span className="l">Trucks</span>
+            <span className="v">{trucks.length}</span>
+          </div>
+          <div className="s">
+            <span className="l">Load</span>
+            <span className="v">{totalHours.toFixed(0)}h</span>
+          </div>
+        </div>
+        <div className="proj-info-row"><span className="lbl">Division</span><span className="val">{crew.division}</span></div>
+        <div className="proj-info-row"><span className="lbl">Foreman</span><span className="val">{foreman?.name || "—"}</span></div>
+        <div className="proj-info-row"><span className="lbl">Utilization</span><span className="val">{utilization}% of 10h daily cap</span></div>
+        <div className="proj-info-row"><span className="lbl">Trucks</span><span className="val">{trucks.length ? trucks.join(", ") : "None assigned"}</span></div>
+        <div className="proj-info-row"><span className="lbl">Equipment</span><span className="val">{equipment.length ? equipment.join(", ") : "None assigned"}</span></div>
+
+        <div className="cust-sub-h" style={{ marginTop: 18 }}>
+          <span>Workers</span>
+          <span className="c">{workers.length}</span>
+        </div>
+        <div className="worker-job-list crew-worker-list">
+          {workers.map((w) => (
+            <div key={w.id} className="worker-job-row">
+              <span className="code">{w.init}</span>
+              <span className="nm">{w.name}</span>
+              <span className="meta">{w.role}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="cust-sub-h" style={{ marginTop: 18 }}>
+          <span>Jobs on crew</span>
+          <span className="c">{jobs.length}</span>
+        </div>
+        <div className="worker-job-list crew-job-list">
+          {nextJobs.map((job) => (
+            <button key={job.id} className="worker-job-row crew-job-row-btn" onClick={() => onOpenJob?.(job)}>
+              <span className="code">{job.code}</span>
+              <span className="nm">{job.name}</span>
+              <span className="meta">{job.startTime || "—"} · {job.priority?.toUpperCase()}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <footer className="proj-drawer-foot">
+        <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
+      </footer>
+    </div>
+  );
+}
+
 function WorkerDrawer({ worker, crews, bench, jobs, onClose }) {
   if (!worker) return null;
   const D = window.DATA;
@@ -1108,5 +1198,5 @@ function UndoToast({ toast, onUndo }) {
 Object.assign(window, {
   Header, Sidebar, Subheader, MetricsRail,
   UnassignedPool, CrewLane, AddCrewLane, BenchBar, UndoToast,
-  FilterPopover, CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer, NotifyCrewsDrawer,
+  FilterPopover, CommandPalette, JobFormDrawer, BenchWorkerDrawer, BoardJobDrawer, CrewDetailDrawer, NotifyCrewsDrawer,
 });

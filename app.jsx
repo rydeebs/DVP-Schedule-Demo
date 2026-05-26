@@ -42,6 +42,7 @@ function App() {
   const [toast, setToast] = aUseState(null);
   const [selectedJobId, setSelectedJobId] = aUseState(null);
   const [selectedWorkerId, setSelectedWorkerId] = aUseState(null);
+  const [selectedCrewId, setSelectedCrewId] = aUseState(null);
   const [addJobCrewId, setAddJobCrewId] = aUseState(null);
   const [addBenchOpen, setAddBenchOpen] = aUseState(false);
   const [notifyOpen, setNotifyOpen] = aUseState(false);
@@ -190,6 +191,7 @@ function App() {
         setAddJobCrewId(null);
         setAddBenchOpen(false);
         setNotifyOpen(false);
+        setSelectedCrewId(null);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -527,19 +529,20 @@ function App() {
             />
             <div className="lanes">
               {crews.map(c => (
-                <CrewLane
-                  key={c.id}
-                  crew={c}
-                  jobs={jobsByCrew[c.id] || []}
+            <CrewLane
+              key={c.id}
+              crew={c}
+              jobs={jobsByCrew[c.id] || []}
                   dragHandlers={dragHandlers}
                   dropHandlers={dropHandlers}
                   isDropTarget={dropTargetId === c.id}
                   isAssigning={assigningLaneId === c.id}
-                  snapJobId={snapJobId}
-                  onOpenJob={(job) => setSelectedJobId(job.id)}
-                  onAddJob={openAddJob}
-                />
-              ))}
+              snapJobId={snapJobId}
+              onOpenJob={(job) => setSelectedJobId(job.id)}
+              onAddJob={openAddJob}
+              onOpenCrew={() => setSelectedCrewId(c.id)}
+            />
+          ))}
               <AddCrewLane onAddCrew={addCrew} />
             </div>
             {t.showBench && <BenchBar bench={bench} onAddBench={() => setAddBenchOpen(true)} onOpenWorker={(worker) => setSelectedWorkerId(worker.id)} />}
@@ -576,6 +579,7 @@ function App() {
             departmentView={crewDepartmentView}
             onDepartmentViewChange={setCrewDepartmentView}
             onOpenWorker={(worker) => setSelectedWorkerId(worker.id)}
+            onOpenCrew={(crewId) => setSelectedCrewId(crewId)}
           />
         )}
 
@@ -603,9 +607,8 @@ function App() {
         onClose={() => setCommandOpen(false)}
         onOpenJob={(job) => setSelectedJobId(job.id)}
         onOpenCrew={(crewId) => {
+          setSelectedCrewId(crewId);
           setView("BOARD");
-          setDropTargetId(crewId);
-          window.setTimeout(() => setDropTargetId(null), 900);
         }}
       />
       <JobFormDrawer
@@ -632,6 +635,13 @@ function App() {
         bench={bench}
         jobs={jobs}
         onClose={() => setSelectedWorkerId(null)}
+      />
+      <CrewDetailDrawer
+        crew={crews.find(c => c.id === selectedCrewId) || null}
+        jobs={jobsByCrew[selectedCrewId] || []}
+        workers={(crews.find(c => c.id === selectedCrewId)?.workerIds || []).map((id) => D.lookup(id)).filter(Boolean)}
+        onClose={() => setSelectedCrewId(null)}
+        onOpenJob={(job) => setSelectedJobId(job.id)}
       />
       <NotifyCrewsDrawer
         open={notifyOpen}

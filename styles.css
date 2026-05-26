@@ -915,6 +915,16 @@ body { overflow: hidden; }
   font-family: var(--font-mono); font-size: 11px; color: var(--ink-2);
   letter-spacing: 0.04em;
 }
+.lane-foot-summary {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.lane-foot-summary:hover { color: var(--ink-0); }
 .lane-action {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -5115,12 +5125,21 @@ body { overflow: hidden; }
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+.crew-job-list .crew-job-row-btn {
+  cursor: pointer;
+}
+.crew-job-list .crew-job-row-btn:hover {
+  background: var(--surface-2);
+}
 .proj-drawer-foot {
   border-top: 1px solid var(--ink-border);
   padding: var(--s3) var(--s5);
   display: flex; gap: var(--s2);
   flex-shrink: 0;
   background: var(--surface-1);
+}
+.crew-drawer .proj-stats {
+  margin-bottom: var(--s3);
 }
 
 /* Mobile reflow */
