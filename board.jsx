@@ -37,7 +37,7 @@ function Header({ collapsed, onToggleSidebar, dark, onToggleDark }) {
           <Icons.Bell size={16} />
           <span className="badge">3</span>
         </button>
-        <button className="avatar" title="Aaron Vasquez · Dispatch Lead">AV</button>
+        <button className="avatar" title="Aaron Jahn · Dispatch Lead">AJ</button>
       </div>
     </header>
   );
@@ -111,7 +111,7 @@ function Subheader({ view, onView, date, onDate, totals }) {
         <button className="icon-btn" onClick={() => onDate(1)} aria-label="Next day"><Icons.ChevR size={14} /></button>
       </div>
       <div className="tabs">
-        {["BOARD","CREW","DISPATCH","WEEK"].map((t) => (
+        {["BOARD","CREW","DISPATCH"].map((t) => (
           <button key={t} className={`tab ${view === t ? "active" : ""}`} onClick={() => onView(t)}>{t}</button>
         ))}
       </div>
@@ -366,26 +366,39 @@ function AddCrewLane() {
 
 /* ─────────────────────────── Bench bar ─────────────────────────── */
 function BenchBar({ bench }) {
+  const [query, setQuery] = bUseState("");
   const groups = {
-    available: { lbl: "AVAILABLE",  state: "available", dashed: true },
+    available: { lbl: "UNASSIGNED", state: "available", dashed: true },
     pto:       { lbl: "PTO",        state: "unavailable" },
     sick:      { lbl: "CALLED OUT", state: "unavailable" },
     shop:      { lbl: "SHOP / YARD",state: "available" },
     training:  { lbl: "TRAINING",   state: "unavailable" },
   };
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredBench = normalizedQuery
+    ? bench.filter(w => `${w.name} ${w.role}`.toLowerCase().includes(normalizedQuery))
+    : bench;
   const groupedKeys = Object.keys(groups);
   const grouped = groupedKeys.map(k => ({
     key: k,
     ...groups[k],
-    workers: bench.filter(b => b.state === k),
+    workers: filteredBench.filter(b => b.state === k),
   })).filter(g => g.workers.length > 0);
 
   return (
     <div className="bench">
       <div className="bench-title">
         <Icons.Users size={14} />
-        BENCH
-        <span className="count">{bench.length}</span>
+        UNASSIGNED
+        <span className="count">{filteredBench.length}</span>
+      </div>
+      <div className="bench-search">
+        <Icons.Search size={12} />
+        <input
+          placeholder="Search workers..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
       {grouped.map((g, i) => (
         <React.Fragment key={g.key}>

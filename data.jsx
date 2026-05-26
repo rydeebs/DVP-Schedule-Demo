@@ -20,101 +20,224 @@ const JOB_TYPES = {
   repair: { label: "REPAIR",     tone: "stop" },
 };
 
-// Worker pool — referenced by id from crews & bench
-const WORKERS = [
-  { id: "w01", name: "Aaron Vasquez",    role: ROLES.FOR, init: "AV", cert: ["OSHA-30","CDL-A","Flagger"] },
-  { id: "w02", name: "Mike Doherty",     role: ROLES.FOR, init: "MD", cert: ["OSHA-30","CDL-A"] },
-  { id: "w03", name: "Luis Diaz",        role: ROLES.FOR, init: "LD", cert: ["OSHA-30","ACI"] },
-  { id: "w04", name: "Raj Patel",        role: ROLES.FOR, init: "RP", cert: ["OSHA-30","CDL-B"] },
-  { id: "w05", name: "Cole Jenkins",     role: ROLES.FOR, init: "CJ", cert: ["OSHA-10"] },
-  { id: "w06", name: "Hector Morales",   role: ROLES.OPR, init: "HM", cert: ["CDL-A","Heavy Eq"] },
-  { id: "w07", name: "Tommy O'Rourke",   role: ROLES.OPR, init: "TO", cert: ["Heavy Eq"] },
-  { id: "w08", name: "Dwayne Carter",    role: ROLES.OPR, init: "DC", cert: ["CDL-A","Heavy Eq"] },
-  { id: "w09", name: "Eli Brennan",      role: ROLES.LBR, init: "EB", cert: ["OSHA-10"] },
-  { id: "w10", name: "Sam Whitford",     role: ROLES.LBR, init: "SW", cert: ["OSHA-10","Flagger"] },
-  { id: "w11", name: "Marcus Bell",      role: ROLES.LBR, init: "MB", cert: ["OSHA-10"] },
-  { id: "w12", name: "Pedro Reyes",      role: ROLES.LBR, init: "PR", cert: ["OSHA-10"] },
-  { id: "w13", name: "Kenny Boyle",      role: ROLES.CDL, init: "KB", cert: ["CDL-A","Tanker"] },
-  { id: "w14", name: "Ricky Tran",       role: ROLES.CDL, init: "RT", cert: ["CDL-A"] },
-  { id: "w15", name: "Jorge Salinas",    role: ROLES.CDL, init: "JS", cert: ["CDL-A"] },
-  { id: "w16", name: "Owen Petrov",      role: ROLES.GRD, init: "OP", cert: ["GPS Grade"] },
-  { id: "w17", name: "Brandon Hayes",    role: ROLES.GRD, init: "BH", cert: ["GPS Grade","Flagger"] },
-  { id: "w18", name: "Marco Russo",      role: ROLES.MAS, init: "MR", cert: ["ACI","OSHA-10"] },
-  { id: "w19", name: "Devon King",       role: ROLES.LBR, init: "DK", cert: ["OSHA-10"] },
-  { id: "w20", name: "Trevor Nash",      role: ROLES.OPR, init: "TN", cert: ["Heavy Eq"] },
-  { id: "w21", name: "Isaiah Wright",    role: ROLES.LBR, init: "IW", cert: ["OSHA-10"] },
-  { id: "w22", name: "Frankie Calabrese",role: ROLES.LBR, init: "FC", cert: ["OSHA-10"] },
-  { id: "w23", name: "Wes Tilghman",     role: ROLES.OPR, init: "WT", cert: ["Heavy Eq","CDL-A"] },
+const initFromName = (name) => name
+  .replace(/[^A-Za-z\s-]/g, "")
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map(part => part[0])
+  .join("")
+  .toUpperCase();
+
+const crewWorkerId = (crewId, index) => `w-${crewId.replace(/^c-/, "")}-${String(index + 1).padStart(2, "0")}`;
+const unassignedWorkerId = (index) => `u-${String(index + 1).padStart(2, "0")}`;
+
+const UNASSIGNED_WORKERS = [
+  "Kyle Dean",
+  "Marcilene Silva",
+  "Mario Pinto",
+  "Pascual Catzoli",
+  "Pedro Silva Morales",
+  "Robert Brown",
+  "Robert Hladish",
+  "Wilfrido Paz",
 ];
 
-const lookup = (id) => WORKERS.find(w => w.id === id);
-
-// Initial crew composition — id maps onto WORKERS
-const INITIAL_CREWS = [
+const CREW_ROSTERS = [
   {
-    id: "c1",
-    name: "Crew 14 — Vasquez",
-    foremanId: "w01",
+    id: "c-aaron",
+    name: "Aaron's Crew",
+    foreman: "Aaron Jahn",
     division: "Paving",
-    workerIds: ["w01","w06","w09","w10","w13","w16"],
-    truckIds: ["T-204","T-211"],
+    truckIds: ["T-204", "T-211"],
     equipment: ["CAT AP1055F", "Bomag BW190", "Volvo SD45"],
-    jobIds: ["j01","j04"],
-    gpsActive: true,
+    workers: ["Aaron Jahn", "Alexander Rios", "Connor Metz", "Darius Rickenbacker", "Jeffrey Taylor", "Walter Prado"],
   },
   {
-    id: "c2",
-    name: "Crew 22 — Doherty",
-    foremanId: "w02",
+    id: "c-adam",
+    name: "Adam's Crew",
+    foreman: "Adam Wampler",
     division: "Excavation",
-    workerIds: ["w02","w07","w11","w12","w14","w17"],
-    truckIds: ["T-118","T-119","T-141"],
+    truckIds: ["T-118", "T-119", "T-141"],
     equipment: ["CAT 336", "Bobcat E85", "Volvo A40G"],
-    jobIds: ["j02"],
-    gpsActive: true,
+    workers: ["Adam Wampler", "Alejandro Lorenzo-Manuel"],
   },
   {
-    id: "c3",
-    name: "Crew 07 — Diaz",
-    foremanId: "w03",
+    id: "c-codi",
+    name: "Codi's Crew",
+    foreman: "Codi Hiner",
     division: "Concrete",
-    workerIds: ["w03","w18","w19","w22"],
     truckIds: ["T-302"],
     equipment: ["Power Trowel x2", "Vibrators"],
-    jobIds: ["j03"],
-    gpsActive: false,
+    workers: ["Christopher Miller", "Codi Hiner", "Conrado Tellez", "Donaciano Perez Flores", "Joel Navor", "Jorge Mendez"],
   },
   {
-    id: "c4",
-    name: "Crew 31 — Patel",
-    foremanId: "w04",
+    id: "c-dalton",
+    name: "Dalton's Crew",
+    foreman: "Dalton",
+    division: "Field Ops",
+    truckIds: [],
+    equipment: [],
+    workers: ["Dalton", "Ryan Borzillo"],
+  },
+  {
+    id: "c-derek",
+    name: "Derek's Crew",
+    foreman: "Derek Moore",
     division: "Milling",
-    workerIds: ["w04","w08","w15","w20","w23"],
-    truckIds: ["T-407","T-408","T-409"],
+    truckIds: ["T-407", "T-408", "T-409"],
     equipment: ["Wirtgen W210", "Sweeper"],
-    jobIds: ["j05"],
-    gpsActive: true,
+    workers: ["Carlos Aragon", "Cesar Villanueva", "Christian Mojica", "Darold Williams", "Derek Moore", "Gregorio Lezama Nabor", "Joshua Rojas Maysonet", "Terrell Henry"],
   },
   {
-    id: "c5",
-    name: "Crew 09 — Jenkins",
-    foremanId: "w05",
-    division: "Striping",
-    workerIds: ["w05","w21"],
+    id: "c-dylan",
+    name: "Dylan's Crew",
+    foreman: "Dylan",
+    division: "Paving",
     truckIds: ["T-505"],
     equipment: ["Graco LineLazer"],
-    jobIds: [],
-    gpsActive: true,
+    workers: ["Holly Rychlak", "Jared Heller", "Dylan", "Mauricio Gonsalez", "Raul Vela Aguilar", "Sean Henry"],
+  },
+  {
+    id: "c-jeff",
+    name: "Jeff's Crew",
+    foreman: "Jeffrey Cahaley",
+    division: "Excavation",
+    truckIds: [],
+    equipment: [],
+    workers: ["Abel Aragon", "David Bechta", "Freddy Castrillo Martinez", "Hector Fuentes-Beltran", "Jeffrey Cahaley", "Manuel Mendoza", "Sylvestre Ortiz"],
+  },
+  {
+    id: "c-jim",
+    name: "Jim's Crew",
+    foreman: "James Browning",
+    division: "Concrete",
+    truckIds: [],
+    equipment: [],
+    workers: ["Bernave Jacinto Pacheco", "Carlos M Gonzalez-Bencosme", "Carlos Ramirez", "Domingo Sanchez", "James Browning", "Willem Delvil"],
+  },
+  {
+    id: "c-jimmy",
+    name: "Jimmy Joy's Crew",
+    foreman: "James Joy",
+    division: "Field Ops",
+    truckIds: [],
+    equipment: [],
+    workers: ["Edwin Aguilar", "Jaime Hernandez-Martinez", "James Joy", "Michael Reichwein", "Yulian Aguilar"],
+  },
+  {
+    id: "c-joe",
+    name: "Joe's Crew",
+    foreman: "Joseph Pawlowski",
+    division: "Field Ops",
+    truckIds: [],
+    equipment: [],
+    workers: ["Joseph Pawlowski", "Marcos Severiano"],
+  },
+  {
+    id: "c-jorge",
+    name: "Jorge's Crew",
+    foreman: "Jorge Bernal",
+    division: "Paving",
+    truckIds: [],
+    equipment: [],
+    workers: ["Angel Romo", "Don Brooks", "Eduardo Juarez", "Felipe Cornejo-Bernal", "Isrrael Lara", "Jorge Bernal", "Jose Romo", "Oscar Lemus Guzman", "Victor Ayala"],
+  },
+  {
+    id: "c-mark",
+    name: "Mark's Crew",
+    foreman: "Mark Hanson",
+    division: "Striping",
+    truckIds: [],
+    equipment: [],
+    workers: ["Efrain Ramirez", "Juan Cuevas", "Mark Hanson", "Trevor Kane"],
+  },
+  {
+    id: "c-oscar",
+    name: "Oscar's Crew",
+    foreman: "Oscar Vargas Dircio",
+    division: "Paving",
+    truckIds: [],
+    equipment: [],
+    workers: ["Christian Telusma", "Jorge Martinez", "Juan Corona", "Oscar Vargas Dircio"],
+  },
+  {
+    id: "c-roberto",
+    name: "Roberto's Crew",
+    foreman: "Pedro Silva",
+    division: "Field Ops",
+    truckIds: [],
+    equipment: [],
+    workers: ["Erwin Cruz Maquin", "Jose Campos", "Pedro Silva"],
+  },
+  {
+    id: "c-sean",
+    name: "Sean's Crew",
+    foreman: "Sean Murphy",
+    division: "Field Ops",
+    truckIds: [],
+    equipment: [],
+    workers: ["Diego Guerrero", "Emmanuel Campos-Gonzalez", "Jorge Navarro Leal", "Sean Murphy"],
   },
 ];
+
+const makeWorker = (id, name, role = ROLES.LBR) => ({
+  id,
+  name,
+  role,
+  init: initFromName(name),
+  cert: role === ROLES.FOR ? ["OSHA-30"] : ["OSHA-10"],
+});
+
+// Worker pool — referenced by id from crews & bench
+const WORKERS = [
+  ...UNASSIGNED_WORKERS.map((name, i) => makeWorker(unassignedWorkerId(i), name)),
+  ...CREW_ROSTERS.flatMap(crew => crew.workers.map((name, i) => makeWorker(
+    crewWorkerId(crew.id, i),
+    name,
+    name === crew.foreman ? ROLES.FOR : ROLES.LBR,
+  ))),
+];
+
+const LEGACY_DRIVER_IDS = {
+  w06: "w-aaron-02",
+  w07: "w-adam-02",
+  w08: "w-derek-01",
+  w13: "w-aaron-03",
+  w14: "w-aaron-04",
+  w15: "w-derek-02",
+  w18: "w-codi-01",
+  w20: "w-derek-03",
+  w22: "w-codi-03",
+  w23: "w-aaron-05",
+};
+
+const lookup = (id) => WORKERS.find(w => w.id === (LEGACY_DRIVER_IDS[id] || id));
+
+// Initial crew composition — id maps onto WORKERS
+const INITIAL_CREWS = CREW_ROSTERS.map((crew) => {
+  const workerIds = crew.workers.map((_, i) => crewWorkerId(crew.id, i));
+  const foremanId = workerIds[crew.workers.findIndex(name => name === crew.foreman)] || workerIds[0];
+  return {
+    id: crew.id,
+    name: crew.name,
+    foremanId,
+    division: crew.division,
+    workerIds,
+    truckIds: crew.truckIds,
+    equipment: crew.equipment,
+    jobIds: [],
+    gpsActive: true,
+  };
+});
 
 // All jobs — both assigned and unassigned
 const ALL_JOBS = [
-  { id: "j01", code: "P-2419", name: "Route 9 Resurfacing — Phase 2",       customer: "NJDOT",                location: "Old Bridge, NJ",   type: "paving",  hours: 9, tons: 480, crew: "c1", startTime: "06:00", endTime: "15:00", priority: "high"  },
-  { id: "j02", code: "X-1180", name: "Riverside Industrial Park — Pad Cut", customer: "Greenleaf Capital",    location: "Edison, NJ",       type: "excav",   hours: 10, yards: 1200, crew: "c2", startTime: "06:30", endTime: "16:30", priority: "med"  },
-  { id: "j03", code: "C-0742", name: "Madison Plaza — Curb & Gutter",        customer: "Madison Realty",       location: "Madison, NJ",      type: "conc",    hours: 8, yards: 22, crew: "c3", startTime: "07:00", endTime: "15:00", priority: "med"  },
-  { id: "j04", code: "P-2418", name: "Costco Lot — South Section",           customer: "Costco Wholesale",     location: "Brunswick, NJ",    type: "paving",  hours: 6, tons: 220, crew: "c1", startTime: "15:30", endTime: "21:30", priority: "low", note: "night work" },
-  { id: "j05", code: "M-1102", name: "Garden State Pkwy Exit 109 — Mill",    customer: "NJ Turnpike Authority",location: "Holmdel, NJ",      type: "mill",    hours: 11, sqyd: 14200, crew: "c4", startTime: "20:00", endTime: "06:00", priority: "high", note: "night work" },
+  { id: "j01", code: "P-2419", name: "Route 9 Resurfacing — Phase 2",       customer: "NJDOT",                location: "Old Bridge, NJ",   type: "paving",  hours: 9, tons: 480, crew: "c-aaron", startTime: "06:00", endTime: "15:00", priority: "high"  },
+  { id: "j02", code: "X-1180", name: "Riverside Industrial Park — Pad Cut", customer: "Greenleaf Capital",    location: "Edison, NJ",       type: "excav",   hours: 10, yards: 1200, crew: "c-adam", startTime: "06:30", endTime: "16:30", priority: "med"  },
+  { id: "j03", code: "C-0742", name: "Madison Plaza — Curb & Gutter",        customer: "Madison Realty",       location: "Madison, NJ",      type: "conc",    hours: 8, yards: 22, crew: "c-codi", startTime: "07:00", endTime: "15:00", priority: "med"  },
+  { id: "j04", code: "P-2418", name: "Costco Lot — South Section",           customer: "Costco Wholesale",     location: "Brunswick, NJ",    type: "paving",  hours: 6, tons: 220, crew: "c-aaron", startTime: "15:30", endTime: "21:30", priority: "low", note: "night work" },
+  { id: "j05", code: "M-1102", name: "Garden State Pkwy Exit 109 — Mill",    customer: "NJ Turnpike Authority",location: "Holmdel, NJ",      type: "mill",    hours: 11, sqyd: 14200, crew: "c-derek", startTime: "20:00", endTime: "06:00", priority: "high", note: "night work" },
   // Unassigned pool
   { id: "j06", code: "P-2420", name: "Wegmans Lot Re-pave — Mobilization",   customer: "Wegmans Food Markets", location: "Bridgewater, NJ",  type: "paving",  hours: 8, tons: 380, crew: null, priority: "high", needs: "1 foreman, 4 laborers, 1 op" },
   { id: "j07", code: "X-1192", name: "Hudson Yards Lot 8 — Stripping",       customer: "Related Companies",    location: "Jersey City, NJ",  type: "excav",   hours: 12, yards: 2800, crew: null, priority: "high", note: "permit window 06:00–18:00" },
@@ -126,24 +249,22 @@ const ALL_JOBS = [
   { id: "j13", code: "M-1105", name: "Walmart DC — Mill & Inlay Test",       customer: "Walmart Inc.",         location: "Cranbury, NJ",     type: "mill",    hours: 8, sqyd: 6400, crew: null, priority: "low" },
 ];
 
-// Bench — workers not on a crew today
-const BENCH = [
-  { workerId: "w99a", name: "Tony Marchetti",  role: ROLES.OPR, init: "TM", state: "pto",      note: "Vacation — back Jun 02" },
-  { workerId: "w99b", name: "Greg Vinson",     role: ROLES.LBR, init: "GV", state: "sick",     note: "Called out 05:47" },
-  { workerId: "w99c", name: "Hank Lozano",     role: ROLES.CDL, init: "HL", state: "training", note: "OSHA-30 refresher" },
-  { workerId: "w99d", name: "Carlos Mendez",   role: ROLES.LBR, init: "CM", state: "shop",     note: "Yard duty — T-118 repair" },
-  { workerId: "w99e", name: "Bill Tanaka",     role: ROLES.OPR, init: "BT", state: "shop",     note: "Inspecting CAT 320" },
-  { workerId: "w99f", name: "Vern Pickard",    role: ROLES.GRD, init: "VP", state: "pto",      note: "Personal day" },
-  { workerId: "w99g", name: "Quentin Ross",    role: ROLES.LBR, init: "QR", state: "available",note: "Open — float crew" },
-  { workerId: "w99h", name: "Anders Lindgren", role: ROLES.OPR, init: "AL", state: "available",note: "Open — heavy eq" },
-];
+// Unassigned workers not on a crew today
+const BENCH = UNASSIGNED_WORKERS.map((name, i) => ({
+  workerId: unassignedWorkerId(i),
+  name,
+  role: ROLES.LBR,
+  init: initFromName(name),
+  state: "available",
+  note: "Unassigned",
+}));
 
 // Weekly stats for the hero rail
 const WEEK_STATS = {
   jobsActive: 141,
   jobsTotal: 5524,
-  workersScheduled: 184,
-  workersTotal: 203,
+  workersScheduled: 74,
+  workersTotal: WORKERS.length,
   trucksDispatched: 47,
   fleetTotal: 62,
   formsOpen: 23,
@@ -165,16 +286,16 @@ const WEEK_DAYS = [
 ];
 
 const WEEK_SCHEDULE = {
-  // c1 Vasquez — Paving
-  c1: {
+  // Aaron's Crew — Paving
+  "c-aaron": {
     1: [{ jobId: "j01", hours: 9 }],
     2: [{ jobId: "j01", hours: 9 }, { jobId: "j04", hours: 6, night: true }],
     3: [{ jobId: "j09", hours: 4 }],
     4: [{ jobId: "j10", hours: 7 }],
     5: [{ jobId: "j10", hours: 7 }],
   },
-  // c2 Doherty — Excavation
-  c2: {
+  // Adam's Crew — Excavation
+  "c-adam": {
     1: [{ jobId: "j02", hours: 10 }],
     2: [{ jobId: "j02", hours: 10 }],
     3: [{ jobId: "j02", hours: 10 }],
@@ -182,21 +303,21 @@ const WEEK_SCHEDULE = {
     5: [{ jobId: "j07", hours: 12 }],
     6: [{ jobId: "j07", hours: 12 }],
   },
-  // c3 Diaz — Concrete
-  c3: {
+  // Codi's Crew — Concrete
+  "c-codi": {
     2: [{ jobId: "j03", hours: 8 }],
     3: [{ jobId: "j11", hours: 5 }],
     4: [{ jobId: "j03", hours: 8 }],
   },
-  // c4 Patel — Milling
-  c4: {
+  // Derek's Crew — Milling
+  "c-derek": {
     2: [{ jobId: "j05", hours: 11, night: true }],
     3: [{ jobId: "j05", hours: 11, night: true }],
     4: [{ jobId: "j13", hours: 8 }],
     5: [{ jobId: "j13", hours: 8 }],
   },
-  // c5 Jenkins — Striping
-  c5: {
+  // Dylan's Crew — Paving
+  "c-dylan": {
     4: [{ jobId: "j08", hours: 6 }],
     5: [{ jobId: "j12", hours: 6 }],
   },

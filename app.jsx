@@ -222,7 +222,7 @@ function App() {
           </div>
         )}
 
-        {(view === "CREW" || view === "WEEK") && (
+        {view === "CREW" && (
           <window.CrewView
             crews={crews}
             scheduleByCrew={D.WEEK_SCHEDULE}
@@ -313,7 +313,7 @@ function App() {
           label="Simulate assignment"
           onClick={() => {
             const free = jobs.find(j => !j.crew);
-            if (free) assignJob(free.id, "c2");
+            if (free) assignJob(free.id, "c-adam");
           }}
         />
         <window.TweakButton
