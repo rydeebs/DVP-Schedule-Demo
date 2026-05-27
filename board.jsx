@@ -97,6 +97,7 @@ function Sidebar({ collapsed }) {
 /* ─────────────────────────── Subheader ─────────────────────────── */
 function Subheader({
   view, onView, date, onDate, totals, canUndo, onUndo, onAddJob, onNotify,
+  crewLabel,
   filters, filterCounts, onOpenFilters, calendarMode, onCalendarMode,
 }) {
   const [dateMenuOpen, setDateMenuOpen] = bUseState(false);
@@ -166,11 +167,11 @@ function Subheader({
       </div>
       <div className="spacer"></div>
       <button
-        className={`filter-chip ${filters?.division !== "all" ? "active" : ""}`}
+        className={`filter-chip ${filters?.crew !== "all" ? "active" : ""}`}
         onClick={onOpenFilters}
       >
         <span className="dot" style={{ background: "var(--status-ok)" }}></span>
-        {filters?.division === "all" ? "ALL DIVISIONS" : filters.division.toUpperCase()}
+        CREWS · {crewLabel || "All crews"}
       </button>
       <button className={`filter-chip ${filterCounts?.active ? "active" : ""}`} onClick={onOpenFilters}>
         <Icons.Filter size={12} /> FILTERS · {filterCounts?.active || 0}
@@ -195,7 +196,7 @@ function Subheader({
   );
 }
 
-function FilterPopover({ open, filters, counts, divisions, onClose, onChange, onReset }) {
+function FilterPopover({ open, filters, counts, crews, onClose, onChange, onReset }) {
   if (!open) return null;
   const statusOptions = [
     { key: "current", label: "Current", count: counts.current },
@@ -245,21 +246,21 @@ function FilterPopover({ open, filters, counts, divisions, onClose, onChange, on
         </div>
       </div>
       <div className="fp-section">
-        <span className="fp-label">Division</span>
+        <span className="fp-label">Crews</span>
         <div className="fp-grid">
           <button
-            className={`fp-option ${filters.division === "all" ? "active" : ""}`}
-            onClick={() => onChange({ division: "all" })}
+            className={`fp-option ${filters.crew === "all" ? "active" : ""}`}
+            onClick={() => onChange({ crew: "all" })}
           >
-            <span>All divisions</span>
+            <span>All crews</span>
           </button>
-          {divisions.map(div => (
+          {crews.map((crew) => (
             <button
-              key={div}
-              className={`fp-option ${filters.division === div ? "active" : ""}`}
-              onClick={() => onChange({ division: div })}
+              key={crew.id}
+              className={`fp-option ${filters.crew === crew.id ? "active" : ""}`}
+              onClick={() => onChange({ crew: crew.id })}
             >
-              <span>{div}</span>
+              <span>{crew.name}</span>
             </button>
           ))}
         </div>

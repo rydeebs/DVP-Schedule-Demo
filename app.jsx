@@ -33,7 +33,7 @@ function App() {
   const [query, setQuery] = aUseState("");
   const [jobStatusFilter, setJobStatusFilter] = aUseState("current");
   const [priorityFilter, setPriorityFilter] = aUseState("all");
-  const [divisionFilter, setDivisionFilter] = aUseState("all");
+  const [crewFilter, setCrewFilter] = aUseState("all");
   const [filtersOpen, setFiltersOpen] = aUseState(false);
   const [crewDepartmentView, setCrewDepartmentView] = aUseState("regional");
   const [draggingId, setDraggingId] = aUseState(null);
@@ -103,14 +103,18 @@ function App() {
   const filterState = aUseMemo(() => ({
     status: jobStatusFilter,
     priority: priorityFilter,
-    division: divisionFilter,
-  }), [jobStatusFilter, priorityFilter, divisionFilter]);
+    crew: crewFilter,
+  }), [jobStatusFilter, priorityFilter, crewFilter]);
   const filterCounts = aUseMemo(() => ({
     current: jobs.length,
     filled: jobs.filter(j => !!j.crew).length,
     unassigned: jobs.filter(j => !j.crew).length,
-    active: [jobStatusFilter !== "current", priorityFilter !== "all", divisionFilter !== "all"].filter(Boolean).length,
-  }), [jobs, jobStatusFilter, priorityFilter, divisionFilter]);
+    active: [jobStatusFilter !== "current", priorityFilter !== "all", crewFilter !== "all"].filter(Boolean).length,
+  }), [jobs, jobStatusFilter, priorityFilter, crewFilter]);
+  const selectedCrewLabel = aUseMemo(() => {
+    if (crewFilter === "all") return "All crews";
+    return crews.find((crew) => crew.id === crewFilter)?.name || crewFilter;
+  }, [crews, crewFilter]);
   const deptLabels = {
     regional: "All crews",
     excavation: "Excavation crews",
@@ -126,13 +130,17 @@ function App() {
       if (jobStatusFilter === "filled" && !j.crew) return false;
       if (jobStatusFilter === "unassigned" && j.crew) return false;
       if (priorityFilter !== "all" && j.priority !== priorityFilter) return false;
-      if (divisionFilter !== "all") {
+      if (crewFilter !== "all") {
         const crew = j.crew ? crews.find(c => c.id === j.crew) : null;
-        if (!crew || crew.division.toLowerCase() !== divisionFilter) return false;
+        if (!crew || crew.id !== crewFilter) return false;
       }
       return true;
     });
-  }, [jobs, crews, jobStatusFilter, priorityFilter, divisionFilter]);
+  }, [jobs, crews, jobStatusFilter, priorityFilter, crewFilter]);
+  const visibleBoardCrews = aUseMemo(() => {
+    if (crewFilter === "all") return crews;
+    return crews.filter((crew) => crew.id === crewFilter);
+  }, [crews, crewFilter]);
 
   const totals = aUseMemo(() => ({
     scheduled: jobs.filter(j => j.crew).length,
@@ -496,6 +504,7 @@ function App() {
           onUndo={handleUndo}
           onAddJob={openAddJob}
           onNotify={() => setNotifyOpen(v => !v)}
+          crewLabel={selectedCrewLabel}
           filters={filterState}
           filterCounts={filterCounts}
           onOpenFilters={() => setFiltersOpen(v => !v)}
@@ -504,17 +513,17 @@ function App() {
           open={filtersOpen}
           filters={filterState}
           counts={filterCounts}
-          divisions={[...new Set(crews.map(c => c.division.toLowerCase()))]}
+          crews={crews}
           onClose={() => setFiltersOpen(false)}
           onChange={(patch) => {
             if (patch.status !== undefined) setJobStatusFilter(patch.status);
             if (patch.priority !== undefined) setPriorityFilter(patch.priority);
-            if (patch.division !== undefined) setDivisionFilter(patch.division);
+            if (patch.crew !== undefined) setCrewFilter(patch.crew);
           }}
           onReset={() => {
             setJobStatusFilter("current");
             setPriorityFilter("all");
-            setDivisionFilter("all");
+            setCrewFilter("all");
           }}
         />
         {t.showHeroRail && view === "BOARD" && <MetricsRail totals={totals} />}
@@ -538,7 +547,7 @@ function App() {
               onStatusFilter={setJobStatusFilter}
             />
             <div className="lanes">
-              {crews.map(c => (
+              {visibleBoardCrews.map(c => (
             <CrewLane
               key={c.id}
               crew={c}
