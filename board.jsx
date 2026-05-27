@@ -167,7 +167,7 @@ function Subheader({
       </div>
       <div className="spacer"></div>
       <button
-        className={`filter-chip ${filters?.crew !== "all" ? "active" : ""}`}
+        className={`filter-chip ${(filters?.crewIds?.length || 0) > 0 ? "active" : ""}`}
         onClick={onOpenFilters}
       >
         <span className="dot" style={{ background: "var(--status-ok)" }}></span>
@@ -249,20 +249,29 @@ function FilterPopover({ open, filters, counts, crews, onClose, onChange, onRese
         <span className="fp-label">Crews</span>
         <div className="fp-grid">
           <button
-            className={`fp-option ${filters.crew === "all" ? "active" : ""}`}
-            onClick={() => onChange({ crew: "all" })}
+            className={`fp-option ${(filters.crewIds?.length || 0) === 0 ? "active" : ""}`}
+            onClick={() => onChange({ crewIds: [] })}
           >
             <span>All crews</span>
           </button>
           {crews.map((crew) => (
             <button
               key={crew.id}
-              className={`fp-option ${filters.crew === crew.id ? "active" : ""}`}
-              onClick={() => onChange({ crew: crew.id })}
+              className={`fp-option ${filters.crewIds?.includes(crew.id) ? "active" : ""}`}
+              onClick={() => {
+                const current = filters.crewIds || [];
+                const next = current.includes(crew.id)
+                  ? current.filter((id) => id !== crew.id)
+                  : [...current, crew.id];
+                onChange({ crewIds: next });
+              }}
             >
               <span>{crew.name}</span>
             </button>
           ))}
+        </div>
+        <div className="fp-note" style={{ marginTop: 8 }}>
+          No crews selected means all crews are shown.
         </div>
       </div>
       <div className="fp-foot">

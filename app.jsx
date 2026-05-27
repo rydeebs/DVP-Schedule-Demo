@@ -33,7 +33,7 @@ function App() {
   const [query, setQuery] = aUseState("");
   const [jobStatusFilter, setJobStatusFilter] = aUseState("current");
   const [priorityFilter, setPriorityFilter] = aUseState("all");
-  const [crewFilter, setCrewFilter] = aUseState("all");
+  const [crewFilterIds, setCrewFilterIds] = aUseState([]);
   const [filtersOpen, setFiltersOpen] = aUseState(false);
   const [crewDepartmentView, setCrewDepartmentView] = aUseState("regional");
   const [draggingId, setDraggingId] = aUseState(null);
@@ -103,18 +103,19 @@ function App() {
   const filterState = aUseMemo(() => ({
     status: jobStatusFilter,
     priority: priorityFilter,
-    crew: crewFilter,
-  }), [jobStatusFilter, priorityFilter, crewFilter]);
+    crewIds: crewFilterIds,
+  }), [jobStatusFilter, priorityFilter, crewFilterIds]);
   const filterCounts = aUseMemo(() => ({
     current: jobs.length,
     filled: jobs.filter(j => !!j.crew).length,
     unassigned: jobs.filter(j => !j.crew).length,
-    active: [jobStatusFilter !== "current", priorityFilter !== "all", crewFilter !== "all"].filter(Boolean).length,
-  }), [jobs, jobStatusFilter, priorityFilter, crewFilter]);
+    active: [jobStatusFilter !== "current", priorityFilter !== "all", crewFilterIds.length > 0].filter(Boolean).length,
+  }), [jobs, jobStatusFilter, priorityFilter, crewFilterIds]);
   const selectedCrewLabel = aUseMemo(() => {
-    if (crewFilter === "all") return "All crews";
-    return crews.find((crew) => crew.id === crewFilter)?.name || crewFilter;
-  }, [crews, crewFilter]);
+    if (crewFilterIds.length === 0) return "All crews";
+    if (crewFilterIds.length === 1) return crews.find((crew) => crew.id === crewFilterIds[0])?.name || "1 crew";
+    return `${crewFilterIds.length} crews selected`;
+  }, [crews, crewFilterIds]);
   const deptLabels = {
     regional: "All crews",
     excavation: "Excavation crews",
@@ -130,17 +131,17 @@ function App() {
       if (jobStatusFilter === "filled" && !j.crew) return false;
       if (jobStatusFilter === "unassigned" && j.crew) return false;
       if (priorityFilter !== "all" && j.priority !== priorityFilter) return false;
-      if (crewFilter !== "all") {
+      if (crewFilterIds.length > 0) {
         const crew = j.crew ? crews.find(c => c.id === j.crew) : null;
-        if (!crew || crew.id !== crewFilter) return false;
+        if (!crew || !crewFilterIds.includes(crew.id)) return false;
       }
       return true;
     });
-  }, [jobs, crews, jobStatusFilter, priorityFilter, crewFilter]);
+  }, [jobs, crews, jobStatusFilter, priorityFilter, crewFilterIds]);
   const visibleBoardCrews = aUseMemo(() => {
-    if (crewFilter === "all") return crews;
-    return crews.filter((crew) => crew.id === crewFilter);
-  }, [crews, crewFilter]);
+    if (crewFilterIds.length === 0) return crews;
+    return crews.filter((crew) => crewFilterIds.includes(crew.id));
+  }, [crews, crewFilterIds]);
 
   const totals = aUseMemo(() => ({
     scheduled: jobs.filter(j => j.crew).length,
@@ -518,12 +519,12 @@ function App() {
           onChange={(patch) => {
             if (patch.status !== undefined) setJobStatusFilter(patch.status);
             if (patch.priority !== undefined) setPriorityFilter(patch.priority);
-            if (patch.crew !== undefined) setCrewFilter(patch.crew);
+            if (patch.crewIds !== undefined) setCrewFilterIds(patch.crewIds);
           }}
           onReset={() => {
             setJobStatusFilter("current");
             setPriorityFilter("all");
-            setCrewFilter("all");
+            setCrewFilterIds([]);
           }}
         />
         {t.showHeroRail && view === "BOARD" && <MetricsRail totals={totals} />}
