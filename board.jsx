@@ -99,6 +99,7 @@ function Subheader({
   view, onView, date, onDate, totals, canUndo, onUndo, onAddJob, onNotify,
   crewLabel,
   filters, filterCounts, onOpenFilters, calendarMode, onCalendarMode,
+  calendarLabel, onPickWeekDate, onPickMonth,
 }) {
   const [dateMenuOpen, setDateMenuOpen] = bUseState(false);
   const d = date;
@@ -107,16 +108,26 @@ function Subheader({
     day: "numeric",
     year: "numeric",
   });
+  const localDateValue = (() => {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().slice(0, 10);
+  })();
+  const localMonthValue = (() => {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().slice(0, 7);
+  })();
   const modeLabel = {
     today: "TODAY",
-    day: "DAY",
-    weekend: "WEEKEND",
-    month: "MONTH",
+    day: "DAY VIEW",
+    week: "WEEK VIEW",
+    month: "MONTH VIEW",
   }[calendarMode || "today"];
   return (
     <div className="subhdr">
       <div className="subhdr-title">
-        <span className="date-num date-compact">{dateLabel}</span>
+        <span className="date-num date-compact">{calendarLabel || dateLabel}</span>
       </div>
       <div className="date-nav">
         <button className="icon-btn" onClick={() => onDate(-1)} aria-label="Previous day"><Icons.ChevL size={14} /></button>
@@ -136,25 +147,29 @@ function Subheader({
                 <strong>May 26</strong>
               </button>
               <label className="date-menu-picker">
-                <span>Specific day</span>
+                <span>Week View</span>
                 <input
                   type="date"
-                  value={date.toISOString().slice(0, 10)}
+                  value={localDateValue}
                   onChange={(event) => {
-                    onCalendarMode?.("day");
-                    onDate(event.target.value);
+                    onCalendarMode?.("week");
+                    onPickWeekDate?.(event.target.value);
                     setDateMenuOpen(false);
                   }}
                 />
               </label>
-              <button onClick={() => { onCalendarMode?.("weekend"); setDateMenuOpen(false); }}>
-                <span>Weekend view</span>
-                <strong>Sat-Sun</strong>
-              </button>
-              <button onClick={() => { onCalendarMode?.("month"); setDateMenuOpen(false); }}>
-                <span>Month view</span>
-                <strong>{date.toLocaleDateString("en-US", { month: "long" })}</strong>
-              </button>
+              <label className="date-menu-picker">
+                <span>Month View</span>
+                <input
+                  type="month"
+                  value={localMonthValue}
+                  onChange={(event) => {
+                    onCalendarMode?.("month");
+                    onPickMonth?.(event.target.value);
+                    setDateMenuOpen(false);
+                  }}
+                />
+              </label>
             </div>
           )}
         </div>

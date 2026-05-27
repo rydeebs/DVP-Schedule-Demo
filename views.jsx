@@ -42,10 +42,14 @@ function CrewView({
   onOpenJob, onAddJob,
   departmentView, onDepartmentViewChange,
   onOpenWorker,
+  weekDays = window.DATA.WEEK_DAYS,
+  activeDayIndex = 2,
+  calendarHeaderLabel,
+  calendarMode = "today",
 }) {
   const D = window.DATA;
-  const WEEK = D.WEEK_DAYS;
-  const TODAY_IDX = 2; // Tue May 26 2026
+  const WEEK = weekDays;
+  const ACTIVE_IDX = activeDayIndex ?? 2;
   const [deptOpen, setDeptOpen] = vUseState(false);
 
   const departmentOptions = [
@@ -101,18 +105,18 @@ function CrewView({
                       <span>{opt.label}</span>
                       {opt.value === selectedDept.value && <Icons.ChevR size={11} />}
                     </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
+            )}
             </div>
-            <span className="sub">WK 22 · MAY 24 – 30, 2026</span>
+            <span className="sub">{calendarHeaderLabel || (calendarMode === "month" ? "MONTH VIEW" : "WEEK VIEW")}</span>
             <span className="sub" style={{ color: "var(--ink-2)" }}>{visibleCrews.length} CREWS · 7 DAYS</span>
           </div>
           {WEEK.map((d, i) => (
-            <div key={d.key} className={`wg-head ${i === TODAY_IDX ? "today" : ""}`}>
+            <div key={d.key} className={`wg-head ${i === ACTIVE_IDX ? "today" : ""}`}>
               <span className="dow">
                 {d.key}
-                {i === TODAY_IDX && <span style={{ color: "var(--signal)", fontSize: 9 }}>TODAY</span>}
+                {i === ACTIVE_IDX && <span style={{ color: "var(--signal)", fontSize: 9 }}>SELECTED</span>}
               </span>
               <span className="dnum">{d.date}</span>
               <span className="wx">
@@ -159,7 +163,7 @@ function CrewView({
                 {WEEK.map((d, i) => {
                   const items = sched[d.idx] || [];
                   const isWk = d.idx === 0 || d.idx === 6;
-                  const isToday = i === TODAY_IDX;
+                  const isToday = i === ACTIVE_IDX;
                   const isDrop = isDropTarget === `${c.id}:${d.idx}`;
                   const totalDay = items.reduce((a, b) => a + b.hours, 0);
                   const over = totalDay > 12;

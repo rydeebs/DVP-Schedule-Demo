@@ -2,6 +2,20 @@
 
 const { useState: aUseState, useEffect: aUseEffect, useMemo: aUseMemo, useCallback: aUseCallback, useRef: aUseRef } = React;
 
+const startOfWeek = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - x.getDay());
+  return x;
+};
+const addDays = (d, days) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+};
+const dateRangeLabel = (start, end) => `${start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+const monthLabel = (d) => d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
 function App() {
   const D = window.DATA;
 
@@ -142,6 +156,36 @@ function App() {
     if (crewFilterIds.length === 0) return crews;
     return crews.filter((crew) => crewFilterIds.includes(crew.id));
   }, [crews, crewFilterIds]);
+  const weekStart = aUseMemo(() => startOfWeek(date), [date]);
+  const weekEnd = aUseMemo(() => addDays(weekStart, 6), [weekStart]);
+  const exactDateLabel = aUseMemo(() => date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }), [date]);
+  const weekDays = aUseMemo(() => {
+    const base = window.DATA?.WEEK_DAYS || [];
+    return base.map((day, idx) => {
+      const current = addDays(weekStart, idx);
+      return {
+        ...day,
+        idx,
+        key: current.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+        date: current.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        fullDate: current,
+      };
+    });
+  }, [weekStart]);
+  const calendarDisplayLabel = aUseMemo(() => {
+    if (calendarMode === "month") return monthLabel(date);
+    if (calendarMode === "week") return dateRangeLabel(weekStart, weekEnd);
+    return exactDateLabel;
+  }, [calendarMode, date, exactDateLabel, weekStart, weekEnd]);
+  const crewCalendarHeaderLabel = aUseMemo(() => {
+    if (calendarMode === "month") return `MONTH VIEW · ${monthLabel(date)}`;
+    if (calendarMode === "week") return `WEEK VIEW · ${dateRangeLabel(weekStart, weekEnd)}`;
+    return `DAY VIEW · ${exactDateLabel}`;
+  }, [calendarMode, date, exactDateLabel, weekStart, weekEnd]);
 
   const totals = aUseMemo(() => ({
     scheduled: jobs.filter(j => j.crew).length,
@@ -461,14 +505,35 @@ function App() {
       setDate(new Date(2026, 4, 26));
       setCalendarMode("today");
     } else {
-      setCalendarMode("day");
+      setCalendarMode((mode) => mode === "month" ? "month" : mode === "week" ? "week" : "day");
       setDate(d => {
         const n = new Date(d);
-        n.setDate(d.getDate() + dir);
+        if (calendarMode === "month") {
+          n.setMonth(n.getMonth() + dir);
+          n.setDate(1);
+        } else if (calendarMode === "week") {
+          n.setDate(n.getDate() + (dir * 7));
+        } else {
+          n.setDate(n.getDate() + dir);
+        }
         return n;
       });
     }
   };
+  const onPickWeekDate = aUseCallback((value) => {
+    if (!value) return;
+    const [year, month, day] = value.split("-").map(Number);
+    if (!year || !month || !day) return;
+    setDate(new Date(year, month - 1, day));
+    setCalendarMode("week");
+  }, []);
+  const onPickMonth = aUseCallback((value) => {
+    if (!value) return;
+    const [year, month] = value.split("-").map(Number);
+    if (!year || !month) return;
+    setDate(new Date(year, month - 1, 1));
+    setCalendarMode("month");
+  }, []);
 
   // Set theme on root
   aUseEffect(() => {
@@ -499,7 +564,10 @@ function App() {
           view={view} onView={setView}
           date={date} onDate={onDateNudge}
           calendarMode={calendarMode}
+          calendarLabel={calendarDisplayLabel}
           onCalendarMode={setCalendarMode}
+          onPickWeekDate={onPickWeekDate}
+          onPickMonth={onPickMonth}
           totals={totals}
           canUndo={!!toast?.undoFn}
           onUndo={handleUndo}
@@ -575,6 +643,10 @@ function App() {
             jobs={jobs}
               bench={bench}
               scheduleByCrew={weekSchedule}
+              weekDays={weekDays}
+              activeDayIndex={date.getDay()}
+              calendarMode={calendarMode}
+              calendarHeaderLabel={crewCalendarHeaderLabel}
               dragHandlers={dragHandlers}
             dropHandlers={{
               onDragOver: (e, key) => { e.preventDefault(); setDropTargetId(key); },
