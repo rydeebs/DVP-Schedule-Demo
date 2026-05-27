@@ -13,6 +13,26 @@ const addDays = (d, days) => {
   x.setDate(x.getDate() + days);
   return x;
 };
+const addMonths = (d, months) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(1);
+  x.setMonth(x.getMonth() + months);
+  return x;
+};
+const startOfMonth = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(1);
+  return x;
+};
+const endOfMonth = (d) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setMonth(x.getMonth() + 1);
+  x.setDate(0);
+  return x;
+};
 const dateRangeLabel = (start, end) => `${start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 const monthLabel = (d) => d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
@@ -158,11 +178,22 @@ function App() {
   }, [crews, crewFilterIds]);
   const weekStart = aUseMemo(() => startOfWeek(date), [date]);
   const weekEnd = aUseMemo(() => addDays(weekStart, 6), [weekStart]);
+  const monthStart = aUseMemo(() => startOfMonth(date), [date]);
+  const monthEnd = aUseMemo(() => endOfMonth(date), [date]);
   const exactDateLabel = aUseMemo(() => date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   }), [date]);
+  const monthGridDays = aUseMemo(() => {
+    const first = startOfWeek(monthStart);
+    const last = addDays(startOfWeek(monthEnd), 6);
+    const cells = [];
+    for (let cursor = new Date(first); cursor <= last; cursor = addDays(cursor, 1)) {
+      cells.push(new Date(cursor));
+    }
+    return cells;
+  }, [monthStart, monthEnd]);
   const weekDays = aUseMemo(() => {
     const base = window.DATA?.WEEK_DAYS || [];
     return base.map((day, idx) => {
@@ -504,21 +535,20 @@ function App() {
     if (dir === 0) {
       setDate(new Date(2026, 4, 26));
       setCalendarMode("today");
-    } else {
-      setCalendarMode((mode) => mode === "month" ? "month" : mode === "week" ? "week" : "day");
-      setDate(d => {
-        const n = new Date(d);
-        if (calendarMode === "month") {
-          n.setMonth(n.getMonth() + dir);
-          n.setDate(1);
-        } else if (calendarMode === "week") {
-          n.setDate(n.getDate() + (dir * 7));
-        } else {
-          n.setDate(n.getDate() + dir);
-        }
-        return n;
-      });
+      return;
     }
+    setDate((current) => {
+      const next = new Date(current);
+      if (calendarMode === "month") {
+        next.setDate(1);
+        next.setMonth(next.getMonth() + dir);
+      } else if (calendarMode === "week") {
+        next.setDate(next.getDate() + (dir * 7));
+      } else {
+        next.setDate(next.getDate() + dir);
+      }
+      return next;
+    });
   };
   const onPickWeekDate = aUseCallback((value) => {
     if (!value) return;
@@ -533,6 +563,20 @@ function App() {
     if (!year || !month) return;
     setDate(new Date(year, month - 1, 1));
     setCalendarMode("month");
+  }, []);
+  const onSelectCalendarDate = aUseCallback((value, mode = "day") => {
+    if (!value) return;
+    if (value instanceof Date) {
+      const next = new Date(value);
+      next.setHours(0, 0, 0, 0);
+      setDate(next);
+      setCalendarMode(mode);
+      return;
+    }
+    const [year, month, day] = String(value).split("-").map(Number);
+    if (!year || !month || !day) return;
+    setDate(new Date(year, month - 1, day));
+    setCalendarMode(mode);
   }, []);
 
   // Set theme on root
@@ -642,12 +686,16 @@ function App() {
             crews={crews}
             jobs={jobs}
               bench={bench}
-              scheduleByCrew={weekSchedule}
-              weekDays={weekDays}
-              activeDayIndex={date.getDay()}
-              calendarMode={calendarMode}
-              calendarHeaderLabel={crewCalendarHeaderLabel}
-              dragHandlers={dragHandlers}
+          scheduleByCrew={weekSchedule}
+          weekDays={weekDays}
+          monthGridDays={monthGridDays}
+          date={date}
+          activeDayIndex={date.getDay()}
+          calendarMode={calendarMode}
+          calendarHeaderLabel={crewCalendarHeaderLabel}
+          crewFilterIds={crewFilterIds}
+          onSelectDate={onSelectCalendarDate}
+          dragHandlers={dragHandlers}
             dropHandlers={{
               onDragOver: (e, key) => { e.preventDefault(); setDropTargetId(key); },
               onDragLeave: (e, key) => {

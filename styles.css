@@ -1390,6 +1390,12 @@ body { overflow: hidden; }
 .wg-head .wx .hi { color: var(--ink-0); }
 .wg-head .wx .lo { color: var(--ink-3); }
 
+.wg-head,
+.wg-day,
+.wg-month-day {
+  min-width: 0;
+}
+
 .wg-corner {
   position: sticky; top: 0; left: 0; z-index: 5;
   background: var(--surface-1);
@@ -1533,6 +1539,7 @@ body { overflow: hidden; }
   min-height: 104px;
   transition: background var(--d-fast);
   background: var(--surface-0);
+  cursor: pointer;
 }
 .wg-day.today { background: oklch(0.985 0.005 80); }
 [data-theme="dark"] .wg-day.today { background: oklch(0.155 0.007 50); }
@@ -1596,6 +1603,140 @@ body { overflow: hidden; }
 }
 .wg-day:hover .wg-add { opacity: 1; }
 .wg-add:hover { color: var(--signal); }
+
+/* ───────────────────────── Crew month view ───────────────────────── */
+.month-mode .weekgrid-table {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.month-table {
+  min-width: 0;
+}
+.wg-month-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--ink-border);
+}
+.month-corner {
+  position: relative;
+  left: auto;
+  top: auto;
+  z-index: auto;
+  border-right: none;
+  border-bottom: none;
+  background: var(--surface-0);
+  padding-bottom: var(--s2);
+}
+.wg-month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--ink-border);
+  background: var(--surface-1);
+}
+.wg-month-weekday {
+  padding: 8px 10px;
+  border-right: 1px solid var(--ink-border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.wg-month-weekday:last-child { border-right: none; }
+.wg-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.wg-month-day {
+  min-height: 132px;
+  padding: 10px;
+  border-right: 1px solid var(--ink-border);
+  border-bottom: 1px solid var(--ink-border);
+  border-left: 0;
+  border-top: 0;
+  background: var(--surface-0);
+  color: var(--ink-0);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.wg-month-day:hover { background: var(--surface-1); }
+.wg-month-day.out-month {
+  background: var(--surface-1);
+  color: var(--ink-2);
+  cursor: default;
+}
+.wg-month-day:disabled {
+  opacity: 0.78;
+}
+.wg-month-day.selected {
+  box-shadow: inset 0 0 0 1px var(--signal);
+}
+.wg-month-day-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wg-month-day .num {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+}
+.wg-month-day .meta,
+.wg-month-day-meta,
+.wg-month-more {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.wg-month-day-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wg-month-day-meta .empty {
+  color: var(--ink-3);
+}
+.wg-month-day-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.wg-month-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--ink-border);
+  background: var(--surface-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ink-1);
+}
+.wg-month-chip.t-paving { border-color: var(--status-ok); color: var(--status-ok); }
+.wg-month-chip.t-excav { border-color: var(--status-warn); color: var(--status-warn); }
+.wg-month-chip.t-mill { border-color: var(--status-info); color: var(--status-info); }
+.wg-month-chip.t-conc { border-color: var(--status-info); color: var(--status-info); }
+.wg-month-chip.t-stripe { border-color: var(--status-ok); color: var(--status-ok); }
+.wg-month-chip.t-prep { border-color: var(--status-warn); color: var(--status-warn); }
+.wg-month-chip.t-repair { border-color: var(--status-stop); color: var(--status-stop); }
+.wg-month-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+}
 
 /* ───────────────────── Dispatch view ───────────────────── */
 .dispatch {

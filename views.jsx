@@ -43,14 +43,19 @@ function CrewView({
   departmentView, onDepartmentViewChange,
   onOpenWorker,
   weekDays = window.DATA.WEEK_DAYS,
+  monthGridDays = [],
+  date = new Date(),
   activeDayIndex = 2,
   calendarHeaderLabel,
   calendarMode = "today",
+  crewFilterIds = [],
+  onSelectDate,
 }) {
   const D = window.DATA;
   const WEEK = weekDays;
   const ACTIVE_IDX = activeDayIndex ?? 2;
   const [deptOpen, setDeptOpen] = vUseState(false);
+  const selectedDate = new Date(date);
 
   const departmentOptions = [
     { value: "regional", label: "DVP / Regional", match: () => true },
@@ -65,7 +70,7 @@ function CrewView({
   const selectedDept = departmentOptions.find((opt) => opt.value === departmentView) || departmentOptions[0];
   const visibleCrews = selectedDept.value === "subcontractor"
     ? []
-    : crews.filter((c) => selectedDept.match(c));
+    : crews.filter((c) => selectedDept.match(c) && (crewFilterIds.length === 0 || crewFilterIds.includes(c.id)));
 
   vUseEffect(() => {
     const onDocClick = (e) => {
@@ -80,6 +85,132 @@ function CrewView({
     jobs.forEach(j => { m[j.id] = j; });
     return m;
   }, [jobs]);
+
+  const monthCells = vUseMemo(() => {
+    if (calendarMode !== "month") return [];
+    return monthGridDays.map((day) => {
+      const inMonth = day.getMonth() === selectedDate.getMonth();
+      const weekday = day.getDay();
+      const entries = inMonth ? visibleCrews.flatMap((crew) => {
+        return (scheduleByCrew[crew.id]?.[weekday] || []).map((item) => ({
+          ...item,
+          crewId: crew.id,
+          crewName: crew.name,
+          job: allJobsById[item.jobId] || null,
+        }));
+      }).filter((item) => !!item.job) : [];
+      const jobIds = new Set(entries.map((item) => item.jobId));
+      const crewIds = new Set(entries.map((item) => item.crewId));
+      return {
+        day,
+        inMonth,
+        entries,
+        jobCount: jobIds.size,
+        crewCount: crewIds.size,
+      };
+    });
+  }, [calendarMode, monthGridDays, visibleCrews, scheduleByCrew, allJobsById]);
+
+  const dayColumns = vUseMemo(() => {
+    if (calendarMode === "month") return [];
+    if (calendarMode === "day") {
+      const weekday = selectedDate.getDay();
+      const refWeekday = WEEK.find((item) => item.idx === weekday) || WEEK[0];
+      return [{
+        ...refWeekday,
+        idx: weekday,
+        key: selectedDate.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+        date: selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        fullDate: new Date(selectedDate),
+      }];
+    }
+    return WEEK;
+  }, [calendarMode, selectedDate, WEEK]);
+
+  const headerSummary = calendarMode === "month"
+    ? `${monthCells.filter((cell) => cell.inMonth).length} DAYS · ${visibleCrews.length} CREWS`
+    : `${visibleCrews.length} CREWS · ${dayColumns.length} DAYS`;
+  const activeColumnIndex = calendarMode === "day" ? 0 : ACTIVE_IDX;
+
+  if (calendarMode === "month") {
+    return (
+      <div className="weekgrid month-mode">
+        <div className="weekgrid-scroll">
+          <div className="weekgrid-table month-table">
+            <div className="wg-month-head">
+              <div className="wg-corner month-corner">
+                <div className="wg-dept">
+                  <button className="wg-dept-btn" onClick={() => setDeptOpen(v => !v)} aria-label="Choose department">
+                    <span className="h">{selectedDept.label}</span>
+                    <Icons.ChevD size={13} />
+                  </button>
+                  {deptOpen && (
+                    <div className="wg-dept-menu" role="menu" aria-label="Department filters">
+                      {departmentOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          className={opt.value === selectedDept.value ? "active" : ""}
+                          onClick={() => {
+                            onDepartmentViewChange?.(opt.value);
+                            setDeptOpen(false);
+                          }}
+                        >
+                          <span>{opt.label}</span>
+                          {opt.value === selectedDept.value && <Icons.ChevR size={11} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span className="sub">{calendarHeaderLabel || "MONTH VIEW"}</span>
+                <span className="sub" style={{ color: "var(--ink-2)" }}>{headerSummary}</span>
+              </div>
+            </div>
+            <div className="wg-month-weekdays">
+              {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
+                <div key={day} className="wg-month-weekday">{day}</div>
+              ))}
+            </div>
+            <div className="wg-month-grid">
+              {monthCells.map((cell) => {
+                const inMonth = cell.day.getMonth() === selectedDate.getMonth();
+                const isSelected = cell.day.toDateString() === selectedDate.toDateString();
+                const topJobs = cell.entries.slice(0, 3);
+                return (
+                  <button
+                    key={cell.day.toISOString()}
+                    type="button"
+                    disabled={!cell.inMonth}
+                    className={`wg-month-day ${cell.inMonth ? "" : "out-month"} ${isSelected ? "selected" : ""}`}
+                    onClick={() => cell.inMonth && onSelectDate?.(cell.day, "day")}
+                  >
+                    <div className="wg-month-day-top">
+                      <span className="num">{cell.day.getDate()}</span>
+                      <span className="meta">{cell.jobCount} JOBS</span>
+                    </div>
+                    <div className="wg-month-day-meta">
+                      <span>{cell.crewCount} CREWS</span>
+                      {cell.entries.length === 0 && cell.inMonth && <span className="empty">No jobs</span>}
+                    </div>
+                    <div className="wg-month-day-jobs">
+                      {topJobs.map((item, index) => (
+                        <span key={`${item.jobId}-${index}`} className={`wg-month-chip t-${item.job?.type || "prep"}`}>
+                          {item.job?.code}
+                        </span>
+                      ))}
+                      {cell.entries.length > topJobs.length && (
+                        <span className="wg-month-more">+{cell.entries.length - topJobs.length}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="weekgrid">
@@ -105,18 +236,18 @@ function CrewView({
                       <span>{opt.label}</span>
                       {opt.value === selectedDept.value && <Icons.ChevR size={11} />}
                     </button>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
             </div>
-            <span className="sub">{calendarHeaderLabel || (calendarMode === "month" ? "MONTH VIEW" : "WEEK VIEW")}</span>
-            <span className="sub" style={{ color: "var(--ink-2)" }}>{visibleCrews.length} CREWS · 7 DAYS</span>
+            <span className="sub">{calendarHeaderLabel || (calendarMode === "day" ? "DAY VIEW" : "WEEK VIEW")}</span>
+            <span className="sub" style={{ color: "var(--ink-2)" }}>{headerSummary}</span>
           </div>
-          {WEEK.map((d, i) => (
-            <div key={d.key} className={`wg-head ${i === ACTIVE_IDX ? "today" : ""}`}>
+          {dayColumns.map((d, i) => (
+            <div key={d.key} className={`wg-head ${i === activeColumnIndex ? "today" : ""}`}>
               <span className="dow">
                 {d.key}
-                {i === ACTIVE_IDX && <span style={{ color: "var(--signal)", fontSize: 9 }}>SELECTED</span>}
+                {i === activeColumnIndex && <span style={{ color: "var(--signal)", fontSize: 9 }}>SELECTED</span>}
               </span>
               <span className="dnum">{d.date}</span>
               <span className="wx">
@@ -160,10 +291,10 @@ function CrewView({
                     <span>{c.equipment.length} EQ</span>
                   </div>
                 </div>
-                {WEEK.map((d, i) => {
+                {dayColumns.map((d, i) => {
                   const items = sched[d.idx] || [];
                   const isWk = d.idx === 0 || d.idx === 6;
-                  const isToday = i === ACTIVE_IDX;
+                  const isToday = i === activeColumnIndex;
                   const isDrop = isDropTarget === `${c.id}:${d.idx}`;
                   const totalDay = items.reduce((a, b) => a + b.hours, 0);
                   const over = totalDay > 12;
@@ -174,6 +305,7 @@ function CrewView({
                       onDragOver={(e) => dropHandlers.onDragOver(e, `${c.id}:${d.idx}`)}
                       onDragLeave={(e) => dropHandlers.onDragLeave(e, `${c.id}:${d.idx}`)}
                       onDrop={(e) => dropHandlers.onDrop(e, c.id, d.idx)}
+                      onClick={() => onSelectDate?.(d.fullDate || selectedDate, "day")}
                     >
                       {items.length === 0 && !isWk && (
                         <div style={{
