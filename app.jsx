@@ -28,6 +28,7 @@ function App() {
   const [weekSchedule, setWeekSchedule] = aUseState(D.WEEK_SCHEDULE);
   const [bench, setBench] = aUseState(D.BENCH);
   const [date, setDate] = aUseState(new Date(2026, 4, 26)); // May 26 2026
+  const [calendarMode, setCalendarMode] = aUseState("today");
   const [view, setView] = aUseState("BOARD");
   const [query, setQuery] = aUseState("");
   const [jobStatusFilter, setJobStatusFilter] = aUseState("current");
@@ -442,9 +443,16 @@ function App() {
   }, [crewDepartmentView, crews, deptLabels, escapeHtml, jobsByCrew, showToast]);
 
   const onDateNudge = (dir) => {
+    if (typeof dir === "string") {
+      const [year, month, day] = dir.split("-").map(Number);
+      if (year && month && day) setDate(new Date(year, month - 1, day));
+      return;
+    }
     if (dir === 0) {
       setDate(new Date(2026, 4, 26));
+      setCalendarMode("today");
     } else {
+      setCalendarMode("day");
       setDate(d => {
         const n = new Date(d);
         n.setDate(d.getDate() + dir);
@@ -481,6 +489,8 @@ function App() {
         <Subheader
           view={view} onView={setView}
           date={date} onDate={onDateNudge}
+          calendarMode={calendarMode}
+          onCalendarMode={setCalendarMode}
           totals={totals}
           canUndo={!!toast?.undoFn}
           onUndo={handleUndo}

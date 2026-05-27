@@ -97,14 +97,21 @@ function Sidebar({ collapsed }) {
 /* ─────────────────────────── Subheader ─────────────────────────── */
 function Subheader({
   view, onView, date, onDate, totals, canUndo, onUndo, onAddJob, onNotify,
-  filters, filterCounts, onOpenFilters,
+  filters, filterCounts, onOpenFilters, calendarMode, onCalendarMode,
 }) {
+  const [dateMenuOpen, setDateMenuOpen] = bUseState(false);
   const d = date;
   const dateLabel = d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+  const modeLabel = {
+    today: "TODAY",
+    day: "DAY",
+    weekend: "WEEKEND",
+    month: "MONTH",
+  }[calendarMode || "today"];
   return (
     <div className="subhdr">
       <div className="subhdr-title">
@@ -112,7 +119,44 @@ function Subheader({
       </div>
       <div className="date-nav">
         <button className="icon-btn" onClick={() => onDate(-1)} aria-label="Previous day"><Icons.ChevL size={14} /></button>
-        <button className="filter-chip" onClick={() => onDate(0)}>TODAY</button>
+        <div className="date-menu-wrap">
+          <button
+            className="filter-chip date-menu-trigger"
+            onClick={() => setDateMenuOpen(v => !v)}
+            aria-expanded={dateMenuOpen}
+            aria-haspopup="menu"
+          >
+            {modeLabel} <Icons.ChevD size={12} />
+          </button>
+          {dateMenuOpen && (
+            <div className="date-menu" role="menu" aria-label="Calendar range">
+              <button onClick={() => { onDate(0); onCalendarMode?.("today"); setDateMenuOpen(false); }}>
+                <span>Today</span>
+                <strong>May 26</strong>
+              </button>
+              <label className="date-menu-picker">
+                <span>Specific day</span>
+                <input
+                  type="date"
+                  value={date.toISOString().slice(0, 10)}
+                  onChange={(event) => {
+                    onCalendarMode?.("day");
+                    onDate(event.target.value);
+                    setDateMenuOpen(false);
+                  }}
+                />
+              </label>
+              <button onClick={() => { onCalendarMode?.("weekend"); setDateMenuOpen(false); }}>
+                <span>Weekend view</span>
+                <strong>Sat-Sun</strong>
+              </button>
+              <button onClick={() => { onCalendarMode?.("month"); setDateMenuOpen(false); }}>
+                <span>Month view</span>
+                <strong>{date.toLocaleDateString("en-US", { month: "long" })}</strong>
+              </button>
+            </div>
+          )}
+        </div>
         <button className="icon-btn" onClick={() => onDate(1)} aria-label="Next day"><Icons.ChevR size={14} /></button>
       </div>
       <div className="tabs">

@@ -462,6 +462,58 @@ body { overflow: hidden; }
 
 .date-nav { display: flex; align-items: center; gap: var(--s1); }
 .date-nav .icon-btn { width: 28px; height: 28px; border: 1px solid var(--ink-border); border-radius: var(--r); }
+.date-menu-wrap { position: relative; }
+.date-menu-trigger { display: inline-flex; align-items: center; gap: 6px; }
+.date-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 80;
+  width: 220px;
+  padding: 6px;
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r-lg);
+  background: var(--surface-0);
+  box-shadow: var(--shadow-lg);
+}
+.date-menu button,
+.date-menu-picker {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--ink-0);
+  padding: 8px 9px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+.date-menu button:hover,
+.date-menu-picker:hover {
+  background: var(--surface-1);
+}
+.date-menu strong {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.date-menu-picker input {
+  width: 112px;
+  border: 1px solid var(--ink-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+  color: var(--ink-0);
+  padding: 4px 6px;
+  font: 11px var(--font-mono);
+}
 
 .tabs {
   display: flex; gap: 0;
